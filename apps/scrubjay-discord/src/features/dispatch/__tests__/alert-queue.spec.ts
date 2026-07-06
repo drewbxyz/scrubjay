@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { deliveries } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
   createTestDb,
@@ -177,6 +178,56 @@ describe("AlertQueue", () => {
       const alert = pending.find((a) => a.subId === "S001");
 
       expect(alert?.recentlyConfirmed).toBe(false);
+    });
+  });
+
+  describe("markSent", () => {
+    it("records a delivery with alertId speciesCode:subId and kind ebird", async () => {
+      await queue.markSent([
+        { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
+      ]);
+
+      const rows = await db.db.select().from(deliveries);
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        alertId: "verfly:S001",
+        channelId: "CH1",
+        kind: "ebird",
+      });
+    });
+
+    it("is idempotent", async () => {
+      const alerts = [
+        { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
+      ];
+
+      await queue.markSent(alerts);
+      await queue.markSent(alerts);
+
+      expect(await db.db.select().from(deliveries)).toHaveLength(1);
+    });
+
+    it("handles more alerts than one batch", async () => {
+      const alerts = Array.from({ length: 250 }, (_, i) => ({
+        channelId: "CH1",
+        speciesCode: "verfly",
+        subId: `S${i}`,
+      }));
+
+      await queue.markSent(alerts);
+
+      expect(await db.db.select().from(deliveries)).toHaveLength(250);
+    });
+
+    it("marked alerts stop being pending", async () => {
+      await seedLocation(db);
+      await seedObservation(db);
+      await seedSubscription(db);
+
+      await queue.markSent(await queue.pendingEBirdAlerts());
+
+      expect(await queue.pendingEBirdAlerts()).toHaveLength(0);
     });
   });
 });

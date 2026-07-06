@@ -12,6 +12,7 @@ import {
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
 const CONFIRMED_WINDOW_DAYS = 7;
+const MARK_SENT_BATCH_SIZE = 100;
 
 export type PendingEBirdAlert = {
   channelId: string;
@@ -31,6 +32,12 @@ export type PendingEBirdAlert = {
   recentlyConfirmed: boolean;
   videoCount: number;
   audioCount: number;
+};
+
+export type SentAlert = {
+  speciesCode: string;
+  subId: string;
+  channelId: string;
 };
 
 /**
@@ -120,5 +127,23 @@ export class AlertQueue {
 
   async pendingEBirdAlerts(since?: Date): Promise<PendingEBirdAlert[]> {
     return pendingEBirdAlertsQuery(this.drizzle.db, since);
+  }
+
+  /**
+   * Record alerts as sent. Idempotent (unique on kind+alertId+channelId);
+   * owns the alertId format — callers never build it.
+   */
+  async markSent(alerts: SentAlert[]): Promise<void> {
+    for (let i = 0; i < alerts.length; i += MARK_SENT_BATCH_SIZE) {
+      const batch = alerts.slice(i, i + MARK_SENT_BATCH_SIZE).map((alert) => ({
+        alertId: `${alert.speciesCode}:${alert.subId}`,
+        channelId: alert.channelId,
+        kind: "ebird" as const,
+      }));
+      await this.drizzle.db
+        .insert(deliveries)
+        .values(batch)
+        .onConflictDoNothing();
+    }
   }
 }
