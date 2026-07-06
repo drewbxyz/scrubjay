@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { Pool } from "pg";
 import { deliveries } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
@@ -10,7 +11,7 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import { AlertQueue } from "../alert-queue";
+import { AlertQueue, pendingEBirdAlertsQuery } from "../alert-queue";
 
 describe("AlertQueue", () => {
   let db: DrizzleService;
@@ -228,6 +229,36 @@ describe("AlertQueue", () => {
       await queue.markSent(await queue.pendingEBirdAlerts());
 
       expect(await queue.pendingEBirdAlerts()).toHaveLength(0);
+    });
+  });
+
+  describe("query plan", () => {
+    it("anti-joins deliveries instead of scanning per row", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      for (let i = 0; i < 200; i += 1) {
+        await seedObservation(db, { subId: `S${i}` });
+      }
+      await queue.markSent(await queue.pendingEBirdAlerts());
+      await db.db.execute(sql`ANALYZE`);
+
+      // EXPLAIN is a utility statement and cannot take bind parameters,
+      // so inline them (highest index first so $1 doesn't clobber $10).
+      const { sql: text, params } = pendingEBirdAlertsQuery(db.db).toSQL();
+      let inlined = text;
+      for (let i = params.length; i >= 1; i -= 1) {
+        const param = params[i - 1];
+        const literal =
+          typeof param === "number" || typeof param === "boolean"
+            ? String(param)
+            : `'${String(param)}'`;
+        inlined = inlined.replaceAll(`$${i}`, literal);
+      }
+
+      const result = await pool.query(`EXPLAIN ${inlined}`);
+      const plan = result.rows.map((row) => row["QUERY PLAN"]).join("\n");
+
+      expect(plan).toMatch(/Anti Join/);
     });
   });
 });
