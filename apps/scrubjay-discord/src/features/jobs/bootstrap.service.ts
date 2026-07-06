@@ -1,6 +1,5 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { DeliveriesService } from "@/features/deliveries/deliveries.service";
-import { EBirdDispatcherService } from "@/features/dispatcher/dispatchers/ebird-dispatcher.service";
+import { AlertQueue } from "@/features/dispatch/alert-queue";
 import { EBirdService } from "@/features/ebird/ebird.service";
 import { SourcesService } from "@/features/sources/sources.service";
 
@@ -17,8 +16,7 @@ export class BootstrapService implements OnModuleInit {
 
   constructor(
     private readonly ebirdService: EBirdService,
-    private readonly ebirdDispatcher: EBirdDispatcherService,
-    private readonly deliveries: DeliveriesService,
+    private readonly alertQueue: AlertQueue,
     private readonly sources: SourcesService,
   ) {}
 
@@ -75,16 +73,10 @@ export class BootstrapService implements OnModuleInit {
         }
       }
 
-      const undelivered = await this.ebirdDispatcher.getUndeliveredSinceDate();
-      await this.deliveries.recordDeliveries(
-        undelivered.map((obs) => ({
-          alertId: `${obs.speciesCode}:${obs.subId}`,
-          alertKind: "ebird" as const,
-          channelId: obs.channelId,
-        })),
-      );
+      const pending = await this.alertQueue.pendingEBirdAlerts();
+      await this.alertQueue.markSent(pending);
       this.logger.log(
-        `Marked ${undelivered.length} deliveries as sent (bootstrap mode).`,
+        `Marked ${pending.length} pre-existing alerts as sent (bootstrap mode).`,
       );
 
       this.logger.log("Startup population complete.");
