@@ -23,6 +23,7 @@
     "@nestjs/testing": "^11.1.13",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.15.11",
+    "@testcontainers/postgresql": "^12.0.4",
     "@types/express": "^5.0.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.19.10",
@@ -45,6 +46,8 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "globalSetup": "<rootDir>/testing/global-setup.ts",
+    "globalTeardown": "<rootDir>/testing/global-teardown.ts",
     "moduleFileExtensions": [
       "js",
       "json",
