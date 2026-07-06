@@ -258,7 +258,14 @@ describe("AlertQueue", () => {
       const result = await pool.query(`EXPLAIN ${inlined}`);
       const plan = result.rows.map((row) => row["QUERY PLAN"]).join("\n");
 
-      expect(plan).toMatch(/Anti Join/);
+      // Anchor on the deliveries exclusion specifically: an Anti Join node
+      // whose condition references deliveries.alert_id. A generic /Anti
+      // Join/ match would also be satisfied by the unrelated
+      // filtered_species anti-join, letting the deliveries exclusion
+      // regress to a per-row scan undetected.
+      expect(plan).toMatch(
+        /Anti Join[^\n]*\n\s*\S+ Cond:[^\n]*deliveries\.alert_id/,
+      );
     });
   });
 });
