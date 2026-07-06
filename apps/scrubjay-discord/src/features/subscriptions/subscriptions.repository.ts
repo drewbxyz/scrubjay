@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
-  channelRssSubscriptions,
   deliveries,
   filteredSpecies,
   locations,
@@ -86,15 +85,5 @@ export class SubscriptionsRepository {
         }
       }
     });
-  }
-
-  async insertRssSubscription(subscription: {
-    channelId: string;
-    sourceId: string;
-  }) {
-    await this.drizzle.db
-      .insert(channelRssSubscriptions)
-      .values(subscription)
-      .onConflictDoNothing();
   }
 }

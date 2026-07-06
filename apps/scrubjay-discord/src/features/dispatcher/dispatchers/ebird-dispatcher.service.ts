@@ -2,14 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { EmbedBuilder } from "discord.js";
 import { DiscordHelper } from "@/discord/discord.helper";
 import { DeliveriesService } from "../../deliveries/deliveries.service";
-import type { Dispatcher } from "../dispatcher.interface";
 import { DispatcherRepository } from "../dispatcher.repository";
 import type { DispatchableObservation } from "../dispatcher.schema";
 
 @Injectable()
-export class EBirdDispatcherService
-  implements Dispatcher<DispatchableObservation[]>
-{
+export class EBirdDispatcherService {
   private readonly logger = new Logger(EBirdDispatcherService.name);
 
   constructor(

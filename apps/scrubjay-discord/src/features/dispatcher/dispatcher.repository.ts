@@ -2,13 +2,10 @@ import { Injectable } from "@nestjs/common";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
-  channelRssSubscriptions,
   deliveries,
   filteredSpecies,
   locations,
   observations,
-  rssItems,
-  rssSources,
 } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
@@ -90,43 +87,6 @@ export class DispatcherRepository {
           since ? gt(observations.createdAt, since) : undefined,
           isNull(filteredSpecies.channelId),
           isNull(deliveries.alertId),
-        ),
-      );
-  }
-
-  async getUndeliveredRssItemsSinceDate(since?: Date) {
-    return this.drizzle.db
-      .select({
-        channelId: channelRssSubscriptions.channelId,
-        contentHtml: rssItems.contentHtml,
-        description: rssItems.description,
-        id: rssItems.id,
-        link: rssItems.link,
-        publishedAt: rssItems.publishedAt,
-        sourceName: rssSources.name,
-        title: rssItems.title,
-      })
-      .from(rssItems)
-      .innerJoin(
-        channelRssSubscriptions,
-        and(
-          eq(channelRssSubscriptions.active, true),
-          eq(channelRssSubscriptions.sourceId, rssItems.sourceId),
-        ),
-      )
-      .leftJoin(
-        deliveries,
-        and(
-          eq(deliveries.kind, "rss"),
-          eq(deliveries.alertId, rssItems.id),
-          eq(deliveries.channelId, channelRssSubscriptions.channelId),
-        ),
-      )
-      .leftJoin(rssSources, and(eq(rssSources.id, rssItems.sourceId)))
-      .where(
-        and(
-          isNull(deliveries.alertId),
-          since ? gt(rssItems.createdAt, since) : undefined,
         ),
       );
   }

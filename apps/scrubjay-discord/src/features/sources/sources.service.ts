@@ -18,13 +18,4 @@ export class SourcesService {
       return [];
     }
   }
-
-  async getRssSources() {
-    try {
-      return this.repo.getRssSources();
-    } catch (err) {
-      this.logger.error(`Error fetching RSS sources: ${err}`);
-      return [];
-    }
-  }
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
-import { DispatcherService } from "@/features/dispatcher/dispatcher.service";
+import { EBirdDispatcherService } from "@/features/dispatcher/dispatchers/ebird-dispatcher.service";
 import { BootstrapService } from "./bootstrap.service";
 
 @Injectable()
@@ -8,7 +8,7 @@ export class DispatchJob {
   private readonly logger = new Logger(DispatchJob.name);
 
   constructor(
-    private readonly dispatcher: DispatcherService,
+    private readonly ebirdDispatcher: EBirdDispatcherService,
     private readonly bootstrapService: BootstrapService,
   ) {}
 
@@ -21,7 +21,6 @@ export class DispatchJob {
     this.logger.debug(
       `Running dispatch job for alerts since ${since.toISOString()}`,
     );
-    await this.dispatcher.dispatchSince("ebird", since);
-    await this.dispatcher.dispatchSince("rss", since);
+    await this.ebirdDispatcher.dispatchSince(since);
   }
 }
