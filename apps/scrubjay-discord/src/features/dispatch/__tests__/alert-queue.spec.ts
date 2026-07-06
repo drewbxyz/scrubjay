@@ -126,4 +126,57 @@ describe("AlertQueue", () => {
       expect(pending.map((alert) => alert.subId)).toEqual(["S001"]);
     });
   });
+
+  describe("recentlyConfirmed", () => {
+    it("is true when a valid+reviewed observation of the same species and location is within 7 days", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedObservation(db, { subId: "S001" });
+      await seedObservation(db, {
+        obsDt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        obsReviewed: true,
+        obsValid: true,
+        subId: "S002",
+      });
+
+      const pending = await queue.pendingEBirdAlerts();
+      const alert = pending.find((a) => a.subId === "S001");
+
+      expect(alert?.recentlyConfirmed).toBe(true);
+    });
+
+    it("is false when the confirming observation is older than 7 days", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedObservation(db, { subId: "S001" });
+      await seedObservation(db, {
+        obsDt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        obsReviewed: true,
+        obsValid: true,
+        subId: "S002",
+      });
+
+      const pending = await queue.pendingEBirdAlerts();
+      const alert = pending.find((a) => a.subId === "S001");
+
+      expect(alert?.recentlyConfirmed).toBe(false);
+    });
+
+    it("is false when the observation is valid but not reviewed", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedObservation(db, { subId: "S001" });
+      await seedObservation(db, {
+        obsDt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        obsReviewed: false,
+        obsValid: true,
+        subId: "S002",
+      });
+
+      const pending = await queue.pendingEBirdAlerts();
+      const alert = pending.find((a) => a.subId === "S001");
+
+      expect(alert?.recentlyConfirmed).toBe(false);
+    });
+  });
 });

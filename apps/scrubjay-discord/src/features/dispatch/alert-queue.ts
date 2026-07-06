@@ -11,6 +11,8 @@ import {
 } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
+const CONFIRMED_WINDOW_DAYS = 7;
+
 export type PendingEBirdAlert = {
   channelId: string;
   speciesCode: string;
@@ -26,6 +28,7 @@ export type PendingEBirdAlert = {
   obsDt: Date;
   createdAt: Date;
   photoCount: number;
+  recentlyConfirmed: boolean;
   videoCount: number;
   audioCount: number;
 };
@@ -50,6 +53,15 @@ export function pendingEBirdAlertsQuery(
       locId: observations.locId,
       obsDt: observations.obsDt,
       photoCount: observations.photoCount,
+      recentlyConfirmed: sql<boolean>`exists (
+        select 1
+        from observations as confirmed_obs
+        where confirmed_obs.species_code = ${observations.speciesCode}
+          and confirmed_obs.location_id = ${observations.locId}
+          and confirmed_obs.observation_valid = true
+          and confirmed_obs.observation_reviewed = true
+          and confirmed_obs.observation_date > now() - make_interval(days => ${CONFIRMED_WINDOW_DAYS})
+      )`,
       sciName: observations.sciName,
       speciesCode: observations.speciesCode,
       state: locations.state,
