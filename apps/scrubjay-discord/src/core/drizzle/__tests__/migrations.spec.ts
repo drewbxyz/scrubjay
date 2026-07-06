@@ -19,6 +19,9 @@ describe("migrations", () => {
           "deliveries",
         ]),
       );
+      expect(tables).not.toContain("rss_items");
+      expect(tables).not.toContain("rss_sources");
+      expect(tables).not.toContain("channel_rss_subscriptions");
     } finally {
       await pool.end();
     }

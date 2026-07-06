@@ -1,0 +1,588 @@
+{
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  },
+  "dialect": "postgresql",
+  "enums": {},
+  "id": "2a7705ac-a963-4ecf-be4d-2ce8c263f2d9",
+  "policies": {},
+  "prevId": "4b4a9bb3-9220-4208-9844-6bde772bed60",
+  "roles": {},
+  "schemas": {},
+  "sequences": {},
+  "tables": {
+    "public.channel_ebird_subscriptions": {
+      "checkConstraints": {},
+      "columns": {
+        "active": {
+          "default": true,
+          "name": "active",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "county_code": {
+          "name": "county_code",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "last_updated": {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "last_updated",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp"
+        },
+        "state_code": {
+          "name": "state_code",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "channel_ebird_subscriptions_channel_id_state_code_county_code_pk": {
+          "columns": ["channel_id", "state_code", "county_code"],
+          "name": "channel_ebird_subscriptions_channel_id_state_code_county_code_pk"
+        }
+      },
+      "foreignKeys": {},
+      "indexes": {
+        "active_state_county_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "active",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "state_code",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "county_code",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "active_state_county_idx",
+          "with": {}
+        },
+        "state_county_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "state_code",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "county_code",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "state_county_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "channel_ebird_subscriptions",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.county_timezones": {
+      "checkConstraints": {},
+      "columns": {
+        "county_code": {
+          "name": "county_code",
+          "notNull": true,
+          "primaryKey": true,
+          "type": "text"
+        },
+        "timezone": {
+          "default": "'America/Los_Angeles'",
+          "name": "timezone",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "foreignKeys": {},
+      "indexes": {
+        "county_code_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "county_code",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "county_code_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "county_timezones",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.deliveries": {
+      "checkConstraints": {},
+      "columns": {
+        "alert_id": {
+          "name": "alert_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "alert_kind": {
+          "name": "alert_kind",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "id": {
+          "name": "id",
+          "notNull": true,
+          "primaryKey": true,
+          "type": "serial"
+        },
+        "sent_at": {
+          "default": "now()",
+          "name": "sent_at",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "timestamp"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "foreignKeys": {},
+      "indexes": {
+        "deliveries_channel_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "channel_id",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "deliveries_channel_idx",
+          "with": {}
+        },
+        "deliveries_unique_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "alert_kind",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "alert_id",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "channel_id",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": true,
+          "method": "btree",
+          "name": "deliveries_unique_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "deliveries",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.filtered_species": {
+      "checkConstraints": {},
+      "columns": {
+        "channel_id": {
+          "name": "channel_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "common_name": {
+          "name": "common_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "filtered_species_common_name_channel_id_pk": {
+          "columns": ["common_name", "channel_id"],
+          "name": "filtered_species_common_name_channel_id_pk"
+        }
+      },
+      "foreignKeys": {},
+      "indexes": {
+        "common_name_channel_id_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "common_name",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "channel_id",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "common_name_channel_id_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "filtered_species",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.locations": {
+      "checkConstraints": {},
+      "columns": {
+        "county": {
+          "name": "county",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "county_code": {
+          "name": "county_code",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "id": {
+          "name": "id",
+          "notNull": true,
+          "primaryKey": true,
+          "type": "text"
+        },
+        "is_private": {
+          "name": "is_private",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "last_updated": {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "last_updated",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp"
+        },
+        "lat": {
+          "name": "lat",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "real"
+        },
+        "lng": {
+          "name": "lng",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "real"
+        },
+        "name": {
+          "name": "name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "state": {
+          "name": "state",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "state_code": {
+          "name": "state_code",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "foreignKeys": {},
+      "indexes": {
+        "county_state_code_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "county_code",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "state_code",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "county_state_code_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "locations",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.observations": {
+      "checkConstraints": {},
+      "columns": {
+        "audio_count": {
+          "default": 0,
+          "name": "audio_count",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "common_name": {
+          "name": "common_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "created_at",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp"
+        },
+        "has_comments": {
+          "name": "has_comments",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "how_many": {
+          "name": "how_many",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "last_updated": {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "last_updated",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp"
+        },
+        "location_id": {
+          "name": "location_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "observation_date": {
+          "name": "observation_date",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "timestamp"
+        },
+        "observation_reviewed": {
+          "name": "observation_reviewed",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "observation_valid": {
+          "name": "observation_valid",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "photo_count": {
+          "default": 0,
+          "name": "photo_count",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "presence_noted": {
+          "name": "presence_noted",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "boolean"
+        },
+        "scientific_name": {
+          "name": "scientific_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "species_code": {
+          "name": "species_code",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "sub_id": {
+          "name": "sub_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "video_count": {
+          "default": 0,
+          "name": "video_count",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        }
+      },
+      "compositePrimaryKeys": {
+        "observations_species_code_sub_id_pk": {
+          "columns": ["species_code", "sub_id"],
+          "name": "observations_species_code_sub_id_pk"
+        }
+      },
+      "foreignKeys": {
+        "observations_location_id_locations_id_fk": {
+          "columnsFrom": ["location_id"],
+          "columnsTo": ["id"],
+          "name": "observations_location_id_locations_id_fk",
+          "onDelete": "cascade",
+          "onUpdate": "cascade",
+          "tableFrom": "observations",
+          "tableTo": "locations"
+        }
+      },
+      "indexes": {
+        "obs_created_at_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "created_at",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "obs_created_at_idx",
+          "with": {}
+        },
+        "obs_location_date_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "location_id",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "observation_date",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "obs_location_date_idx",
+          "with": {}
+        },
+        "obs_review_valid_date_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "observation_reviewed",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "observation_valid",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "observation_date",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "obs_review_valid_date_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "observations",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    }
+  },
+  "version": "7",
+  "views": {}
+}
