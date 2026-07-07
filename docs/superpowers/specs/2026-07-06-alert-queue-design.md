@@ -116,6 +116,9 @@ export class AlertQueueRepository {
 
   pendingEBirdAlerts(since?: Date): Promise<PendingEBirdAlert[]>;
   insertDeliveries(rows: DeliveryRow[]): Promise<void>;
+
+  /** Unexecuted query builder, for the EXPLAIN smoke test only. */
+  buildPendingEBirdAlertsQuery(since?: Date): PgSelect;
 }
 ```
 
@@ -123,8 +126,9 @@ export class AlertQueueRepository {
 (100 per insert) before handing prepared rows to `AlertQueueRepository.insertDeliveries`
 — that's business logic, not data access, so it stays out of the repository.
 `AlertQueueRepository` does no filtering/branching of its own; it just runs the query
-and the insert. `pendingEBirdAlertsQuery`, the unexecuted query builder, is exported
-from `alert-queue.repository.ts` solely for the EXPLAIN smoke test.
+and the insert. `buildPendingEBirdAlertsQuery` is a method on the class, not a free
+export — the EXPLAIN test instantiates `AlertQueueRepository` like any other consumer
+and calls the method on it, rather than importing a standalone query-building function.
 
 Plain exported TypeScript types — no zod. Every source column is `NOT NULL` in the
 schema, so the type is fully non-nullable; the dispatcher's `?? 0` fallbacks on media

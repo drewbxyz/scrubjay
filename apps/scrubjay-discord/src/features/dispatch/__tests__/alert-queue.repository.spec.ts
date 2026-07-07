@@ -8,10 +8,7 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import {
-  AlertQueueRepository,
-  pendingEBirdAlertsQuery,
-} from "../alert-queue.repository";
+import { AlertQueueRepository } from "../alert-queue.repository";
 
 describe("AlertQueueRepository", () => {
   let db: DrizzleService;
@@ -50,7 +47,9 @@ describe("AlertQueueRepository", () => {
 
       // EXPLAIN is a utility statement and cannot take bind parameters,
       // so inline them (highest index first so $1 doesn't clobber $10).
-      const { sql: text, params } = pendingEBirdAlertsQuery(db.db).toSQL();
+      const { sql: text, params } = repository
+        .buildPendingEBirdAlertsQuery()
+        .toSQL();
       let inlined = text;
       for (let i = params.length; i >= 1; i -= 1) {
         const param = params[i - 1];
