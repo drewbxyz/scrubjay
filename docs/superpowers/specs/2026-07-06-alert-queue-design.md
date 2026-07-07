@@ -20,7 +20,7 @@ problem: one alert kind, one dispatcher, no routing layer.
 | Decision | Choice |
 |---|---|
 | Module name | `AlertQueue` |
-| Module shape | One concrete injectable class; no abstract interface (one adapter = hypothetical seam) |
+| Module shape | One concrete injectable class; no abstract interface (one adapter = hypothetical seam). Raw data access is split into `AlertQueueRepository`, following the codebase's repository convention — but it's consumed only by `AlertQueue` and its own tests, never injected elsewhere, so `AlertQueue` stays the module's sole public seam. |
 | RSS feature | Deleted entirely, including database tables and rows |
 | Behavior policy | Fix as we go — tests assert desired behavior, not current quirks |
 | Test database | Testcontainers (`@testcontainers/postgresql`), real Postgres 17 |
@@ -67,9 +67,11 @@ Rename `features/dispatcher/` → `features/dispatch/`:
 ```
 features/dispatch/
   dispatch.module.ts
-  alert-queue.ts              # the deep module
-  ebird-dispatcher.service.ts # Discord-facing half: grouping, embeds, sending
-  __tests__/alert-queue.spec.ts
+  alert-queue.ts               # the deep module: alert identity, batching, orchestration
+  alert-queue.repository.ts    # raw data access; consumed only by AlertQueue
+  ebird-dispatcher.service.ts  # Discord-facing half: grouping, embeds, sending
+  __tests__/alert-queue.spec.ts             # behavior, through AlertQueue's interface
+  __tests__/alert-queue.repository.spec.ts  # query plan (EXPLAIN), through the repository
 ```
 
 ### Interface
@@ -97,7 +99,7 @@ export type PendingEBirdAlert = {
 
 @Injectable()
 export class AlertQueue {
-  constructor(private readonly drizzle: DrizzleService) {}
+  constructor(private readonly repository: AlertQueueRepository) {}
 
   /** Matched, unfiltered, undelivered observation×channel rows. */
   pendingEBirdAlerts(since?: Date): Promise<PendingEBirdAlert[]>;
@@ -107,7 +109,22 @@ export class AlertQueue {
 }
 
 export type SentAlert = { speciesCode: string; subId: string; channelId: string };
+
+@Injectable()
+export class AlertQueueRepository {
+  constructor(private readonly drizzle: DrizzleService) {}
+
+  pendingEBirdAlerts(since?: Date): Promise<PendingEBirdAlert[]>;
+  insertDeliveries(rows: DeliveryRow[]): Promise<void>;
+}
 ```
+
+`AlertQueue` builds the `alertId` (`speciesCode:subId`) and batches `markSent` calls
+(100 per insert) before handing prepared rows to `AlertQueueRepository.insertDeliveries`
+— that's business logic, not data access, so it stays out of the repository.
+`AlertQueueRepository` does no filtering/branching of its own; it just runs the query
+and the insert. `pendingEBirdAlertsQuery`, the unexecuted query builder, is exported
+from `alert-queue.repository.ts` solely for the EXPLAIN smoke test.
 
 Plain exported TypeScript types — no zod. Every source column is `NOT NULL` in the
 schema, so the type is fully non-nullable; the dispatcher's `?? 0` fallbacks on media
@@ -153,7 +170,7 @@ built inside `EBirdDispatcherService` — the meaning of "confirmed" lives in on
 - **`features/deliveries/*`** then has zero live callers → deleted (service,
   repository, module, specs). §4 becomes pure deletion.
 - **`DispatcherRepository`** and `dispatcher.schema.ts` are deleted; their live
-  content moves into `alert-queue.ts`.
+  content moves into `alert-queue.repository.ts`.
 
 ### Delivery guarantee (unchanged, now documented)
 
@@ -171,7 +188,9 @@ operation. Accepted; exactly-once is not a goal.
   via env. `globalTeardown` stops the container. Docker is required wherever tests
   run (dev machine, CI, or the VPS — all have it).
 - Tests construct `DrizzleService` with the container URL — the real production
-  adapter, not a different driver — and `new AlertQueue(drizzle)`.
+  adapter, not a different driver — and `new AlertQueue(new AlertQueueRepository(drizzle))`.
+  `alert-queue.repository.spec.ts` constructs `AlertQueueRepository` directly for the
+  EXPLAIN query-plan case, which needs the unexecuted query builder.
 - Tables truncated between tests; small seed helpers insert
   observations/locations/subscriptions/filters/deliveries rows.
 
