@@ -113,51 +113,13 @@ export const countyTimezones = pgTable(
   (t) => [index("county_code_idx").on(t.countyCode)],
 );
 
-export const rssItems = pgTable("rss_items", {
-  contentHtml: text("content_html"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  description: text("description"),
-  id: text("id").primaryKey(),
-  lastUpdated: timestamp("last_updated").default(sql`CURRENT_TIMESTAMP`),
-  link: text("link"),
-  publishedAt: timestamp("published_at"),
-  sourceId: text("source_id")
-    .references(() => rssSources.id, {
-      onDelete: "cascade",
-      onUpdate: "cascade",
-    })
-    .notNull(),
-  title: text("title"),
-});
-
-export const rssSources = pgTable("rss_sources", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  url: text("url").notNull(),
-});
-
-export const channelRssSubscriptions = pgTable(
-  "channel_rss_subscriptions",
-  {
-    active: boolean("active").notNull().default(true),
-    channelId: text("channel_id").notNull(),
-    sourceId: text("id")
-      .references(() => rssSources.id, {
-        onDelete: "cascade",
-        onUpdate: "cascade",
-      })
-      .notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.channelId, t.sourceId] })],
-);
-
 export const deliveries = pgTable(
   "deliveries",
   {
     alertId: text("alert_id").notNull(),
     channelId: text("channel_id").notNull(),
     id: serial("id").primaryKey(),
-    kind: text("alert_kind").notNull(), // 'ebird' | 'rss'
+    kind: text("alert_kind").notNull(), // 'ebird' (rss existed historically; rows purged in 0004)
     sentAt: timestamp("sent_at").defaultNow(),
   },
   (t) => [
@@ -176,17 +138,3 @@ export const observationsRelations = relations(observations, ({ one }) => ({
     references: [locations.id],
   }),
 }));
-
-export const rssSourceRelations = relations(rssSources, ({ many }) => ({
-  channelRssSubscriptions: many(channelRssSubscriptions),
-}));
-
-export const channelRssSubscriptionRelations = relations(
-  channelRssSubscriptions,
-  ({ one }) => ({
-    rssSources: one(rssSources, {
-      fields: [channelRssSubscriptions.sourceId],
-      references: [rssSources.id],
-    }),
-  }),
-);

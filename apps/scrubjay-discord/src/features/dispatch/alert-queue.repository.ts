@@ -2,43 +2,69 @@ import { Injectable } from "@nestjs/common";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
-  channelRssSubscriptions,
   deliveries,
   filteredSpecies,
   locations,
   observations,
-  rssItems,
-  rssSources,
 } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
+const CONFIRMED_WINDOW_DAYS = 7;
+
+export type PendingEBirdAlert = {
+  channelId: string;
+  speciesCode: string;
+  comName: string;
+  sciName: string;
+  subId: string;
+  locId: string;
+  locationName: string;
+  county: string;
+  state: string;
+  isPrivate: boolean;
+  howMany: number;
+  obsDt: Date;
+  createdAt: Date;
+  photoCount: number;
+  recentlyConfirmed: boolean;
+  videoCount: number;
+  audioCount: number;
+};
+
+export type DeliveryRow = {
+  alertId: string;
+  channelId: string;
+  kind: "ebird";
+};
+
+/**
+ * Raw data access for AlertQueue. Consumed only by AlertQueue and by this
+ * repository's own tests — the matching/filtering/delivery semantics live in
+ * the query itself, but callers reach them through AlertQueue's interface.
+ */
 @Injectable()
-export class DispatcherRepository {
+export class AlertQueueRepository {
   constructor(private readonly drizzle: DrizzleService) {}
 
-  async getConfirmedSinceDate(since: Date) {
-    return this.drizzle.db
-      .selectDistinct({
-        locId: observations.locId,
-        speciesCode: observations.speciesCode,
-      })
-      .from(observations)
-      .where(
-        and(
-          gt(observations.obsDt, since),
-          eq(observations.obsValid, true),
-          eq(observations.obsReviewed, true),
-        ),
-      );
+  async pendingEBirdAlerts(since?: Date): Promise<PendingEBirdAlert[]> {
+    return this.buildPendingEBirdAlertsQuery(since);
   }
 
-  async getUndeliveredObservationsSinceDate(since?: Date) {
+  async insertDeliveries(rows: DeliveryRow[]): Promise<void> {
+    await this.drizzle.db.insert(deliveries).values(rows).onConflictDoNothing();
+  }
+
+  /**
+   * Unexecuted query builder, for the EXPLAIN smoke test in
+   * alert-queue.repository.spec.ts — everything else awaits
+   * `pendingEBirdAlerts` instead.
+   */
+  buildPendingEBirdAlertsQuery(since?: Date) {
     return this.drizzle.db
       .select({
         audioCount: observations.audioCount,
         channelId: channelEBirdSubscriptions.channelId,
         comName: observations.comName,
-
         county: locations.county,
         createdAt: observations.createdAt,
         howMany: observations.howMany,
@@ -47,8 +73,16 @@ export class DispatcherRepository {
         locId: observations.locId,
         obsDt: observations.obsDt,
         photoCount: observations.photoCount,
+        recentlyConfirmed: sql<boolean>`exists (
+        select 1
+        from observations as confirmed_obs
+        where confirmed_obs.species_code = ${observations.speciesCode}
+          and confirmed_obs.location_id = ${observations.locId}
+          and confirmed_obs.observation_valid = true
+          and confirmed_obs.observation_reviewed = true
+          and confirmed_obs.observation_date > now() - make_interval(days => ${CONFIRMED_WINDOW_DAYS})
+      )`,
         sciName: observations.sciName,
-
         speciesCode: observations.speciesCode,
         state: locations.state,
         subId: observations.subId,
@@ -90,43 +124,6 @@ export class DispatcherRepository {
           since ? gt(observations.createdAt, since) : undefined,
           isNull(filteredSpecies.channelId),
           isNull(deliveries.alertId),
-        ),
-      );
-  }
-
-  async getUndeliveredRssItemsSinceDate(since?: Date) {
-    return this.drizzle.db
-      .select({
-        channelId: channelRssSubscriptions.channelId,
-        contentHtml: rssItems.contentHtml,
-        description: rssItems.description,
-        id: rssItems.id,
-        link: rssItems.link,
-        publishedAt: rssItems.publishedAt,
-        sourceName: rssSources.name,
-        title: rssItems.title,
-      })
-      .from(rssItems)
-      .innerJoin(
-        channelRssSubscriptions,
-        and(
-          eq(channelRssSubscriptions.active, true),
-          eq(channelRssSubscriptions.sourceId, rssItems.sourceId),
-        ),
-      )
-      .leftJoin(
-        deliveries,
-        and(
-          eq(deliveries.kind, "rss"),
-          eq(deliveries.alertId, rssItems.id),
-          eq(deliveries.channelId, channelRssSubscriptions.channelId),
-        ),
-      )
-      .leftJoin(rssSources, and(eq(rssSources.id, rssItems.sourceId)))
-      .where(
-        and(
-          isNull(deliveries.alertId),
-          since ? gt(rssItems.createdAt, since) : undefined,
         ),
       );
   }

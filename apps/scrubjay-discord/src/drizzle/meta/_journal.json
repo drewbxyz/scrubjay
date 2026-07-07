@@ -28,6 +28,13 @@
       "tag": "0003_freezing_princess_powerful",
       "version": "7",
       "when": 1763867254460
+    },
+    {
+      "breakpoints": true,
+      "idx": 4,
+      "tag": "0004_drop_rss",
+      "version": "7",
+      "when": 1783375299441
     }
   ],
   "version": "7"
