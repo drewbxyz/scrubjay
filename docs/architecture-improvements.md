@@ -14,6 +14,18 @@ verified by grep; every code excerpt is verbatim from the tree at commit `e29ccb
 > §10, §11) was re-verified against the current tree and is still accurate as written.
 > Per-item status is called out inline below.
 
+> **Status update — 2026-07-07 (evening), PR #62.** The `apps/test-api` half of §8 is
+> done: dead root-level data files, the RSS mock surface (~630 lines, mocking the
+> feature #61 deleted), 6 of 7 mock eBird endpoints (the bot calls only
+> `recent/notable`), the unused `moment` and `tsup` deps, and the dead `getApiKeys`
+> export are all deleted; the test-api README was rewritten (it documented the wrong
+> auth header). Two findings from that pass are folded in below: the
+> `features/dispatch/__tests__/` suite **is** the real-Postgres integration suite §11
+> asked for (see §3/§11), and `DiscordHelper` is even deader post-#61 (see §7c). Also
+> fixed on that branch: `pnpm-workspace.yaml`'s `allowBuilds` had unfilled
+> "set this to true or false" placeholders (introduced in `29eb15b`), which made
+> `pnpm install` hard-fail on pnpm 11 — the first PR to run CI after that commit caught it.
+
 ## Vocabulary used in this document
 
 - **Module** — anything with an interface and an implementation (function, class, package, slice).
@@ -83,7 +95,9 @@ which likely prevents Postgres from using `deliveries_unique_idx` for that anti-
 `deliveries` grows. Storing the composite id on `observations` (or a generated column)
 would restore index use. Similarly `rss_items.created_at` and
 `channel_rss_subscriptions.sourceId` have no supporting index for their dispatch
-predicates.
+predicates. _Update 2026-07-07: addressed — the post-#61 dispatch suite has an
+EXPLAIN-based regression test asserting the deliveries anti-join is index-backed
+(`dispatch/__tests__/alert-queue.repository.spec.ts`); the RSS half is moot (§9)._
 
 ---
 
@@ -93,10 +107,17 @@ predicates.
 > AlertQueue`) replaced `features/dispatcher/*` and `features/deliveries/*` with
 > `features/dispatch/` behind an AlertQueue-shaped interface, along the lines proposed
 > below. The file paths in this section are stale; treat it as a historical record of
-> the reasoning, not a live task. Worth a follow-up pass to confirm the integration-test
-> coverage described in §11 actually landed for the new module (there is now a
-> `features/dispatch/__tests__/` directory — its style hasn't been re-checked against the
-> "real Postgres" recommendation below).
+> the reasoning, not a live task.
+>
+> **Follow-up confirmed 2026-07-07:** `features/dispatch/__tests__/` is the real-Postgres
+> integration suite recommended below — `createTestDb` + seed helpers, truncate per test,
+> asserting alert output through the `AlertQueue` interface. Coverage includes county vs
+> `*` wildcard (and cross-state wildcard rejection), inactive subscriptions, per-channel
+> species filters, per-channel delivery dedup, the `since` cutoff applying to ingest time,
+> the 7-day confirmed window, and `markSent` idempotency/batching. There is even an
+> EXPLAIN-based test asserting the deliveries anti-join is index-backed rather than a
+> per-row scan (which addresses §2's performance note). The remaining gap is not the
+> tests — it's that nothing runs them: see §11.
 
 **Files (stale, pre-#61):** `features/dispatcher/*` (5 files), `features/deliveries/*` (2 files),
 `features/jobs/dispatch.job.ts`, `features/jobs/bootstrap.service.ts`
@@ -400,9 +421,11 @@ with `customId: "filter/<speciesCode>"`, which is the framework's first-class an
 
 ### 7c. `DiscordHelper` shrinks to one sender
 
-Verified: 71 of its 111 lines are dead (`sendEmbedsToChannel`, `sendMessageToChannel`,
-`getChannel` — no callers), each repeating the same fetch-channel/guard/try-catch
-boilerplate. Neither Necord nor discord.js offers a higher-level "send to channel id",
+Re-verified 2026-07-07 against the post-#61 tree — it's deader than originally claimed:
+only `sendEmbedToChannel` has a caller (`dispatch/ebird-dispatcher.service.ts:128`).
+The other three methods (`sendEmbedsToChannel`, `sendMessageToChannel`, `getChannel`)
+are all dead now (~85 of 111 lines), each repeating the same
+fetch-channel/guard/try-catch boilerplate. Neither Necord nor discord.js offers a higher-level "send to channel id",
 so a thin outbound port is the right shape — keep exactly one
 `send(channelId, payload)`; `isSendable()` already implies text-based, so the double
 guard collapses too. Optionally inject Necord's `ChannelManager` provider instead of the
@@ -436,11 +459,18 @@ src/
 
 ## 8. Opportunity: delete the dead weight
 
-> **Status: mostly open.** Re-verified 2026-07-07: `apps/test-api/src/{species,hotspots,regions}.ts`
-> still present; `packages/database/` and `packages/vitest-config/` still exist unchanged.
-> `DeliveriesService`/`Repository` dead surface is moot — the whole `deliveries/` slice
-> is gone (§3/§4). Other rows (`core/timezones`, dead type exports, DI-ceremony specs,
-> stale `dist/`) not re-checked this pass.
+> **Status: partially done.** The `apps/test-api` rows landed via PR #62 (2026-07-07):
+> the dead root-level trio is gone, plus the RSS mock surface, 6 unused mock endpoints,
+> and unused deps the original audit missed (`moment`, `tsup`, `getApiKeys`). Stale
+> `dist/` was deleted locally (gitignored, nothing to commit). Still open:
+> `packages/database/` and `packages/vitest-config/` — **new finding:** neither has a
+> `package.json`, so they aren't workspace members at all; deleting them is a pure
+> `rm -rf` with no lockfile impact. Also still open: `core/timezones` (the
+> `county_timezones` drop-table decision), `EBirdObservationResponse`
+> (`ebird.schema.ts:36`, zero importers — `NormalizedRssFeed`/`DispatcherType` died with
+> RSS), `subscriptions.module.spec.ts` (DI ceremony; `rss.module.spec.ts` died with RSS),
+> and the `test:e2e` script (B11). `DeliveriesService`/`Repository` dead surface is
+> moot — the whole `deliveries/` slice is gone (§3/§4).
 
 All grep-verified against the pre-#61 tree. **~529 dead source lines**, plus stranded directories.
 
@@ -539,6 +569,16 @@ schema becomes trustworthy documentation of the deployment contract.
 
 ## 11. Opportunity: a test strategy that matches the seams
 
+> **Status update — 2026-07-07.** The centerpiece landed: the dispatch module is
+> integration-tested against real Postgres through the `AlertQueue` interface (see §3
+> for verified coverage). What remains is the last bullet, and it's now the single
+> highest-leverage item in this document: **nothing runs the tests.** `turbo.json`
+> defines no `test` task, and the Status Checks workflow runs only
+> `pnpm run format-and-lint` — not `check-types`, not `jest`. A predicate regression
+> in the dispatch join would pass CI today. Wiring a `test` task + a Postgres service
+> container into CI (plus `check-types`) converts the already-paid-for suite into
+> standing protection and de-risks every remaining refactor (§4, §6, §7, §10).
+
 Current inventory (13 spec files): 4 test real behaviour through an interface (the two
 transformers, the eBird fetcher, region parsing), 5 re-encode implementation call
 sequences with mocks, 2 mock the entire drizzle fluent chain, 2 are DI ceremony.
@@ -576,8 +616,10 @@ ordering relative to what's already done — but resume with what's still open:_
 1. **Bug fixes** (B1–B11) — mostly one-liners; B3 and B4 are user-visible correctness.
    **Still open**: B1, B2 (partial), B4, B5, B9, B11 confirmed open;
    B3/B6/B7/B8/B10 not re-checked.
-2. **Dead-weight deletion** (§8) — zero risk, immediate navigability. **Still open**
-   (test-api dead files, `packages/database`, `packages/vitest-config` confirmed present).
+2. **Dead-weight deletion** (§8) — zero risk, immediate navigability. **Partially
+   done**: all of `apps/test-api` cleaned via PR #62; still open: `packages/database`,
+   `packages/vitest-config` (pure `rm -rf`, not workspace members), `core/timezones`
+   decision, `EBirdObservationResponse`, `subscriptions.module.spec.ts`.
 3. ~~**Pass-through layer removal** (§4)~~ — **partially done**: `deliveries/` gone via
    §3; `FiltersService`/`SourcesService`/dead eBird chain still open.
    ~~+ **dispatcher-map removal** (§5)~~ — **done** via §3.
@@ -588,8 +630,9 @@ ordering relative to what's already done — but resume with what's still open:_
    claims against the post-#61 call sites before executing.
 6. **Fetcher validation + location mapping collapse** (§6). **Still open.**
 7. ~~**Dispatch module deepening + integration tests** (§3, §11)~~ — **§3 done** via
-   PR #61; **§11 (integration tests against real Postgres) not yet confirmed** — check
-   what `features/dispatch/__tests__/` actually covers before considering this closed.
+   PR #61, and the real-Postgres integration suite is **confirmed present and
+   thorough** (verified 2026-07-07, see §3). The open remainder of §11 is CI wiring:
+   no `test` task in `turbo.json`, CI runs lint only. That's now the top-value item.
 8. ~~**RSS decision** (§9)~~ — **done**: PR #61 deleted RSS rather than finishing or
    declaring it ops-managed.
 
