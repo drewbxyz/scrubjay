@@ -6,7 +6,6 @@
   "devDependencies": {
     "@scrubjay/typescript-config": "workspace:*",
     "@types/express": "^5.0.6",
-    "tsup": "^8.5.1",
     "tsx": "^4.23.0"
   },
   "main": "index.js",
