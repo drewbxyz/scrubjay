@@ -4,5 +4,8 @@ packages:
 allowBuilds:
   '@nestjs/core': false
   '@swc/core': true
+  cpu-features: false
   esbuild: true
   necord: false
+  protobufjs: false
+  ssh2: false

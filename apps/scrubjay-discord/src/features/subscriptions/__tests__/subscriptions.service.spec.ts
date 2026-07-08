@@ -61,8 +61,10 @@ describe("SubscriptionsService", () => {
       expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
-    it("handles invalid region code with 1 part", async () => {
-      await service.subscribeToEBird("channel-123", "US");
+    it("rejects invalid region code with 1 part", async () => {
+      await expect(
+        service.subscribeToEBird("channel-123", "US"),
+      ).rejects.toThrow("Invalid region code: US");
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
       expect(loggerErrorSpy).toHaveBeenCalledWith(
@@ -70,8 +72,10 @@ describe("SubscriptionsService", () => {
       );
     });
 
-    it("handles invalid region code with 4+ parts", async () => {
-      await service.subscribeToEBird("channel-123", "US-WA-033-EXTRA");
+    it("rejects invalid region code with 4+ parts", async () => {
+      await expect(
+        service.subscribeToEBird("channel-123", "US-WA-033-EXTRA"),
+      ).rejects.toThrow("Invalid region code: US-WA-033-EXTRA");
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
       expect(loggerErrorSpy).toHaveBeenCalledWith(
@@ -79,18 +83,22 @@ describe("SubscriptionsService", () => {
       );
     });
 
-    it("handles empty region code", async () => {
-      await service.subscribeToEBird("channel-123", "");
+    it("rejects empty region code", async () => {
+      await expect(service.subscribeToEBird("channel-123", "")).rejects.toThrow(
+        "Invalid region code",
+      );
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
       expect(loggerErrorSpy).toHaveBeenCalled();
     });
 
-    it("handles database errors gracefully", async () => {
+    it("rejects when the database insert fails", async () => {
       const dbError = new Error("Database connection failed");
       repoMock.insertEBirdSubscription.mockRejectedValue(dbError);
 
-      await service.subscribeToEBird("channel-123", "US-WA");
+      await expect(
+        service.subscribeToEBird("channel-123", "US-WA"),
+      ).rejects.toThrow("Failed to subscribe to eBird");
 
       expect(repoMock.insertEBirdSubscription).toHaveBeenCalledWith({
         channelId: "channel-123",
