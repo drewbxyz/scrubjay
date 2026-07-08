@@ -33,8 +33,13 @@ export class SubscriptionCommands {
         flags: [MessageFlags.Ephemeral],
       });
     } catch (error) {
+      const content =
+        error instanceof Error &&
+        error.message.startsWith("Invalid region code")
+          ? error.message
+          : "Something went wrong subscribing this channel.";
       return interaction.reply({
-        content: `Failed to subscribe to eBird: ${error}`,
+        content,
         flags: [MessageFlags.Ephemeral],
       });
     }
