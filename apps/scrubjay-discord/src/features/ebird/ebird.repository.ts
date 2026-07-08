@@ -27,8 +27,15 @@ export class EBirdRepository {
       })
       .onConflictDoUpdate({
         set: {
-          ...data,
+          county: data.subnational2Name,
+          countyCode: data.subnational2Code,
+          isPrivate: data.locationPrivate,
           lastUpdated: new Date(),
+          lat: data.lat,
+          lng: data.lng,
+          name: data.locName,
+          state: data.subnational1Name,
+          stateCode: data.subnational1Code,
         },
         target: [locations.id],
       })
@@ -56,9 +63,19 @@ export class EBirdRepository {
       })
       .onConflictDoUpdate({
         set: {
-          ...data,
+          audioCount: data.audioCount,
+          comName: data.comName,
+          hasComments: data.hasComments,
+          howMany: data.howMany ?? 0,
           lastUpdated: new Date(),
+          locId: data.locId,
           obsDt: new Date(data.obsDt),
+          obsReviewed: data.obsReviewed,
+          obsValid: data.obsValid,
+          photoCount: data.photoCount,
+          presenceNoted: data.presenceNoted,
+          sciName: data.sciName,
+          videoCount: data.videoCount,
         },
         target: [observations.speciesCode, observations.subId],
       })
