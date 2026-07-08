@@ -1,6 +1,7 @@
 import { Global, Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { drizzle } from "drizzle-orm/node-postgres";
+import type { AppConfig } from "@/core/config/config.schema";
 import * as schema from "./drizzle.schema";
 import { DrizzleService } from "./drizzle.service";
 import { PG_CONNECTION } from "./pg-connection";
@@ -13,13 +14,10 @@ import { PG_CONNECTION } from "./pg-connection";
     {
       inject: [ConfigService],
       provide: PG_CONNECTION,
-      useFactory: (configService: ConfigService) => {
-        const dbUrl = configService.get("DATABASE_URL");
-        if (!dbUrl) {
-          throw new Error("DATABASE_URL is not set");
-        }
-        return drizzle(dbUrl, { schema });
-      },
+      useFactory: (configService: ConfigService<AppConfig, true>) =>
+        drizzle(configService.get("DATABASE_URL", { infer: true }), {
+          schema,
+        }),
     },
     DrizzleService,
   ],

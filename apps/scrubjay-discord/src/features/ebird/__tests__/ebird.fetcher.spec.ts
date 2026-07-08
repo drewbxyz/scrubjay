@@ -6,8 +6,8 @@ describe("EBirdFetcher", () => {
   let fetcher: EBirdFetcher;
   const originalFetch = global.fetch;
   const configServiceMock = {
-    getOrThrow: jest.fn(),
-  } as unknown as ConfigService;
+    get: jest.fn(),
+  } as unknown as ConfigService<never, true>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,7 +20,7 @@ describe("EBirdFetcher", () => {
     }).compile();
     fetcher = module.get<EBirdFetcher>(EBirdFetcher);
 
-    (configServiceMock.getOrThrow as unknown as jest.Mock).mockImplementation(
+    (configServiceMock.get as unknown as jest.Mock).mockImplementation(
       (key: string) => {
         if (key === "EBIRD_BASE_URL") return "https://api.ebird.org";
         if (key === "EBIRD_TOKEN") return "token";
