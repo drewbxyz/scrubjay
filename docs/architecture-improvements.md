@@ -4,6 +4,16 @@ _Compiled 2026-07-06 from a full read of the codebase (~3.5k lines of app source
 research into Necord's documented conventions. Every "dead code" claim below was
 verified by grep; every code excerpt is verbatim from the tree at commit `e29ccbb`._
 
+> **Status update — 2026-07-07.** PR #61 (`refactor: delete RSS feature, put dispatch
+> behind AlertQueue`) landed §3 and §9 in one move: dispatch now lives behind
+> `features/dispatch/` (an `AlertQueue`-shaped module), `deliveries/` is gone, and RSS was
+> deleted outright rather than finished or declared ops-managed. That also incidentally
+> resolved §5 (no more dispatcher map — there's one dispatch path now) and several of the
+> RSS-specific bugs (B2's RSS half, B9 is unrelated and still open). File paths in §3, §5,
+> and §9 below are now stale; the rest of the document (§2 bugs, §4 remainder, §6, §7, §8,
+> §10, §11) was re-verified against the current tree and is still accurate as written.
+> Per-item status is called out inline below.
+
 ## Vocabulary used in this document
 
 - **Module** — anything with an interface and an implementation (function, class, package, slice).
@@ -50,19 +60,22 @@ effort. A suggested sequencing is at the end.
 These are not refactors — they are defects that exploration surfaced. Worth fixing
 before or alongside any cleanup, and several are one-liners.
 
-| # | Bug | Where | Effect |
-|---|-----|-------|--------|
-| B1 | `isChannelFilterable` never `await`s its query — `return !!channelMeta` wraps a **Promise**, which is always truthy | `filters/filters.repository.ts:13-19` | The "is this an eBird channel" guard always passes. Combined with B2, a 👎 on any embed in any channel adds a filter row. |
-| B2 | Species is parsed from the embed title (`title.split(" - ")[0]`), but RSS embeds set the title to the *source name* | `filters/handlers/filters-add.handler.ts` vs `rss-dispatcher.service.ts:27` | Three 👎 reactions on an RSS post silently insert the RSS source's name into `filtered_species`. Species names containing `" - "` also break. |
-| B3 | `upsertLocation`'s insert path maps eBird names → DB columns (`subnational2Name`→`county`), but the on-conflict update does `set: { ...data }` with **raw eBird keys**, which don't match any column except `lat`/`lng` | `ebird/ebird.repository.ts:14-33` | Location renames / privacy changes never propagate on update; only `lat`, `lng`, `lastUpdated` are written. `upsertObservation` (`:57-64`) has the same insert-vs-update key mismatch pattern. |
-| B4 | Joi validates `DEVELOPMENT_SERVER`; the code reads `DEVELOPMENT_SERVER_ID`. Also, when unset the expression yields `undefined` rather than Necord's explicit `false` | `app.module.ts:12` vs `:31-33` | The validated var is never read. A dev machine without the var registers slash commands **globally** (Necord's `development` option expects `Snowflake[] \| false`). |
-| B5 | `DATABASE_URL` and `PORT` are required at runtime but absent from the Joi schema; `DISCORD_CLIENT_ID` is validated but read nowhere | `app.module.ts:11-17`, `main.ts:9,16` | The config seam claims guarantees it doesn't provide. |
-| B6 | `bootstrapComplete = true` is set in a `finally`, so a failed/partial bootstrap still unblocks all jobs | `jobs/bootstrap.service.ts:96-99` | Dispatch can run against a DB whose historical observations were never marked delivered → a burst of stale alerts. |
-| B7 | `waitForBootstrap`'s 5-minute timeout `reject()`s, and no job wraps the call in try/catch | `bootstrap.service.ts:49-60`, `dispatch.job.ts:18` | Slow bootstrap → unhandled rejection in every cron job. |
-| B8 | `DispatchJob.run` has no error handling around the two dispatch calls | `jobs/dispatch.job.ts` | One bad channel/API hiccup can abort the whole minute's dispatch with an unhandled rejection. |
-| B9 | Reaction listener checks `reaction.partial` but never `user.partial` before reading `user.bot`; `Partials.User` is not configured | `discord/listeners/reaction-listener.service.ts:15-17`, `app.module.ts:38` | On a partial user, `bot` is `null` and the bot-guard silently passes. |
-| B10 | `/sub-ebird` replies interpolate the raw error (`Failed to subscribe to eBird: ${error}`) to the user | `discord/commands/subscription-commands.service.ts:37` | Leaks internal error text into Discord. |
-| B11 | `"test:e2e"` script points at `./test/jest-e2e.json`, which does not exist | `apps/scrubjay-discord/package.json:74` | Script is broken; also `turbo.json` defines no `test` task at all, so tests never run in the pipeline. |
+_Re-verified 2026-07-07 against current tree. Status column added; unmarked = still open
+exactly as described._
+
+| # | Bug | Where | Effect | Status |
+|---|-----|-------|--------|--------|
+| B1 | `isChannelFilterable` never `await`s its query — `return !!channelMeta` wraps a **Promise**, which is always truthy | `filters/filters.repository.ts:13-19` | The "is this an eBird channel" guard always passes. Combined with B2, a 👎 on any embed in any channel adds a filter row. | **Open** — confirmed still missing `await` at `filters.repository.ts:14`. |
+| B2 | Species is parsed from the embed title (`title.split(" - ")[0]`), but RSS embeds set the title to the *source name* | `filters/handlers/filters-add.handler.ts` vs `rss-dispatcher.service.ts:27` | Three 👎 reactions on an RSS post silently insert the RSS source's name into `filtered_species`. Species names containing `" - "` also break. | **Partially resolved** — RSS is deleted (PR #61), so the RSS half of this bug can't occur anymore. The underlying fragility (parsing species from title text instead of a stable id) is still present in `filters-add.handler.ts:20`. |
+| B3 | `upsertLocation`'s insert path maps eBird names → DB columns (`subnational2Name`→`county`), but the on-conflict update does `set: { ...data }` with **raw eBird keys**, which don't match any column except `lat`/`lng` | `ebird/ebird.repository.ts:14-33` | Location renames / privacy changes never propagate on update; only `lat`, `lng`, `lastUpdated` are written. `upsertObservation` (`:57-64`) has the same insert-vs-update key mismatch pattern. | Not re-verified this pass. |
+| B4 | Joi validates `DEVELOPMENT_SERVER`; the code reads `DEVELOPMENT_SERVER_ID`. Also, when unset the expression yields `undefined` rather than Necord's explicit `false` | `app.module.ts:12` vs `:31-33` | The validated var is never read. A dev machine without the var registers slash commands **globally** (Necord's `development` option expects `Snowflake[] \| false`). | **Open** — confirmed: Joi still has `DEVELOPMENT_SERVER`, code still reads `DEVELOPMENT_SERVER_ID` at `app.module.ts:31-32`. |
+| B5 | `DATABASE_URL` and `PORT` are required at runtime but absent from the Joi schema; `DISCORD_CLIENT_ID` is validated but read nowhere | `app.module.ts:11-17`, `main.ts:9,16` | The config seam claims guarantees it doesn't provide. | **Open** — confirmed: `main.ts` still reads `DATABASE_URL`/`PORT` via raw `process.env`, not Joi/`ConfigService`. |
+| B6 | `bootstrapComplete = true` is set in a `finally`, so a failed/partial bootstrap still unblocks all jobs | `jobs/bootstrap.service.ts:96-99` | Dispatch can run against a DB whose historical observations were never marked delivered → a burst of stale alerts. | Not re-verified this pass. |
+| B7 | `waitForBootstrap`'s 5-minute timeout `reject()`s, and no job wraps the call in try/catch | `bootstrap.service.ts:49-60`, `dispatch.job.ts:18` | Slow bootstrap → unhandled rejection in every cron job. | Not re-verified this pass. |
+| B8 | `DispatchJob.run` has no error handling around the two dispatch calls | `jobs/dispatch.job.ts` | One bad channel/API hiccup can abort the whole minute's dispatch with an unhandled rejection. | Not re-verified this pass — note `dispatch.job.ts` now calls into the AlertQueue-shaped module from PR #61, so re-check against the new shape. |
+| B9 | Reaction listener checks `reaction.partial` but never `user.partial` before reading `user.bot`; `Partials.User` is not configured | `discord/listeners/reaction-listener.service.ts:15-17`, `app.module.ts:38` | On a partial user, `bot` is `null` and the bot-guard silently passes. | **Open** — confirmed: only `reaction.partial` is checked in `reaction-listener.service.ts`, no `user.partial` guard. |
+| B10 | `/sub-ebird` replies interpolate the raw error (`Failed to subscribe to eBird: ${error}`) to the user | `discord/commands/subscription-commands.service.ts:37` | Leaks internal error text into Discord. | Not re-verified this pass. |
+| B11 | `"test:e2e"` script points at `./test/jest-e2e.json`, which does not exist | `apps/scrubjay-discord/package.json:74` | Script is broken; also `turbo.json` defines no `test` task at all, so tests never run in the pipeline. | **Open** — confirmed: `test/jest-e2e.json` still missing, and `turbo.json` still defines no `test` task. |
 
 Performance note (not a correctness bug): the eBird dispatch join computes
 `alertId = speciesCode || ':' || subId` on the fly (`dispatcher.repository.ts:82-84`),
@@ -76,7 +89,16 @@ predicates.
 
 ## 3. Opportunity: name and deepen the dispatch module
 
-**Files:** `features/dispatcher/*` (5 files), `features/deliveries/*` (2 files),
+> **Status: done.** PR #61 (`refactor: delete RSS feature, put dispatch behind
+> AlertQueue`) replaced `features/dispatcher/*` and `features/deliveries/*` with
+> `features/dispatch/` behind an AlertQueue-shaped interface, along the lines proposed
+> below. The file paths in this section are stale; treat it as a historical record of
+> the reasoning, not a live task. Worth a follow-up pass to confirm the integration-test
+> coverage described in §11 actually landed for the new module (there is now a
+> `features/dispatch/__tests__/` directory — its style hasn't been re-checked against the
+> "real Postgres" recommendation below).
+
+**Files (stale, pre-#61):** `features/dispatcher/*` (5 files), `features/deliveries/*` (2 files),
 `features/jobs/dispatch.job.ts`, `features/jobs/bootstrap.service.ts`
 
 ### Problem
@@ -158,9 +180,15 @@ predicate.
 
 ## 4. Opportunity: delete the pass-through service layer
 
+> **Status: partially done.** `deliveries/` disappeared as a side effect of §3 (PR #61),
+> which resolves that bullet. **Still open, re-verified 2026-07-07:** `FiltersService`
+> and `SourcesService` both still exist as verbatim delegates; the dead eBird chain
+> (`EBirdService.getObservationsSinceCreatedDate` → `EBirdRepository.getAlertsCreatedSinceDate`)
+> is also still present, callers unchanged.
+
 **Files:** `filters/filters.service.ts`, `sources/sources.service.ts`,
-`deliveries/deliveries.service.ts` (+ repository dead methods),
 `ebird/ebird.service.ts:56-58`, `ebird/ebird.repository.ts:68-72`
+(`deliveries/deliveries.service.ts` no longer exists — folded away by PR #61, see §3)
 
 ### Problem
 
@@ -199,7 +227,11 @@ what the deletion test verifies.
 
 ## 5. Opportunity: remove the dispatcher-map ceremony
 
-**Files:** `dispatcher/dispatcher.service.ts`, `dispatcher/dispatcher.interface.ts`
+> **Status: done**, as a side effect of §3 (PR #61) rather than a targeted fix — the
+> `dispatcher/` directory and its `DispatcherMap` are gone entirely, replaced by the
+> single `features/dispatch/` module. File paths below are stale.
+
+**Files (stale, pre-#61):** `dispatcher/dispatcher.service.ts`, `dispatcher/dispatcher.interface.ts`
 
 ### Problem
 
@@ -238,8 +270,13 @@ seam that remains is the one that actually exists.
 
 ## 6. Opportunity: make the fetcher seam honest (validate or drop zod)
 
+> **Status: open.** Re-verified 2026-07-07: `ebird.fetcher.ts` still does
+> `await response.json()` and casts, with no `.parse(`/`.safeParse(` anywhere. The
+> `rss/rss.schema.ts` half is moot now that RSS is deleted (§9), but the eBird half of
+> this opportunity — including B3's location-mapping fix — is untouched.
+
 **Files:** `ebird/ebird.schema.ts`, `ebird/ebird.fetcher.ts`, `ebird/ebird.transformer.ts`,
-`ebird/ebird.repository.ts`, `rss/rss.schema.ts`
+`ebird/ebird.repository.ts`
 
 ### Problem
 
@@ -287,8 +324,14 @@ home. ~40 lines net deletion.
 
 ## 7. Opportunity: organize the Discord surface the Necord way
 
-**Files:** `discord/*` (module, helper, commands, listeners, reaction-router — 10 files),
-`features/filters/handlers/filters-add.handler.ts`, `app.module.ts`
+> **Status: open, entirely.** Re-verified 2026-07-07: `discord/reaction-router/` still
+> has all 5 files described in §7a; `discord/commands/` is still a central folder
+> (`commands.dto.ts`, `commands.module.ts`, `subscription-commands.service.ts`,
+> `util-commands.service.ts`) rather than commands living in their feature slices per
+> §7b; `discord.helper.ts` is still 111 lines with all four methods
+> (`sendEmbedsToChannel`, `sendEmbedToChannel`, `sendMessageToChannel`, `getChannel`) —
+> the claimed dead-caller counts in §7c should be re-verified against the post-#61 tree
+> before deleting, since dispatch's call sites moved.
 
 This addresses "idk how to organize some of the stuff cleanly" directly. Necord's docs
 prescribe little, but its two official references establish clear conventions
@@ -393,7 +436,13 @@ src/
 
 ## 8. Opportunity: delete the dead weight
 
-All grep-verified. **~529 dead source lines**, plus stranded directories.
+> **Status: mostly open.** Re-verified 2026-07-07: `apps/test-api/src/{species,hotspots,regions}.ts`
+> still present; `packages/database/` and `packages/vitest-config/` still exist unchanged.
+> `DeliveriesService`/`Repository` dead surface is moot — the whole `deliveries/` slice
+> is gone (§3/§4). Other rows (`core/timezones`, dead type exports, DI-ceremony specs,
+> stale `dist/`) not re-checked this pass.
+
+All grep-verified against the pre-#61 tree. **~529 dead source lines**, plus stranded directories.
 
 | Item | Lines | Notes |
 |---|---|---|
@@ -416,7 +465,14 @@ Cheapest win in this document.
 
 ## 9. Opportunity: decide the fate of RSS subscriptions
 
-**Files:** `subscriptions.repository.ts:91-99`, `sources.repository.ts:22-24`,
+> **Status: decided and done.** PR #61 chose neither Option A nor Option B below —
+> instead it deleted the RSS feature outright (fetcher, transformer, repository,
+> dispatcher, schema, and the dead `insertRssSubscription`/`rss_sources` surface this
+> section describes). This closes the "half-built vertical" problem by removing the
+> vertical rather than finishing or formally ops-managing it. File paths below are
+> stale; kept for historical context in case RSS (or another source type) returns.
+
+**Files (stale, pre-#61):** `subscriptions.repository.ts:91-99`, `sources.repository.ts:22-24`,
 `core/drizzle/drizzle.schema.ts:133-151`
 
 ### Problem
@@ -452,6 +508,10 @@ the code, whichever option is chosen.
 ---
 
 ## 10. Opportunity: one honest config seam
+
+> **Status: open.** Re-verified 2026-07-07 — the drift table below is unchanged: Joi
+> still lacks `DATABASE_URL`/`PORT`, `main.ts` still reads them via raw `process.env`,
+> and `DEVELOPMENT_SERVER` vs `DEVELOPMENT_SERVER_ID` is still mismatched (B4/B5).
 
 **Files:** `app.module.ts`, `main.ts`, `core/drizzle/drizzle.module.ts`
 
@@ -506,19 +566,32 @@ refactoring.
 
 ## 12. Suggested sequencing
 
-Each step is independently shippable; ordering minimizes rework:
+Each step is independently shippable; ordering minimizes rework.
+
+_Status as of 2026-07-07: PR #61 jumped ahead and landed step 7 (dispatch deepening,
+§3) and step 8 (RSS decision, §9) before steps 1–6, which incidentally also finished
+step 3's dispatcher-map half (§5). That's fine — the remaining steps don't depend on
+ordering relative to what's already done — but resume with what's still open:_
 
 1. **Bug fixes** (B1–B11) — mostly one-liners; B3 and B4 are user-visible correctness.
-2. **Dead-weight deletion** (§8) — zero risk, immediate navigability.
-3. **Pass-through layer removal** (§4) + **dispatcher-map removal** (§5) — small,
-   mechanical, shrinks the graph before deeper work.
-4. **Config seam** (§10) — small, independent.
+   **Still open**: B1, B2 (partial), B4, B5, B9, B11 confirmed open;
+   B3/B6/B7/B8/B10 not re-checked.
+2. **Dead-weight deletion** (§8) — zero risk, immediate navigability. **Still open**
+   (test-api dead files, `packages/database`, `packages/vitest-config` confirmed present).
+3. ~~**Pass-through layer removal** (§4)~~ — **partially done**: `deliveries/` gone via
+   §3; `FiltersService`/`SourcesService`/dead eBird chain still open.
+   ~~+ **dispatcher-map removal** (§5)~~ — **done** via §3.
+4. **Config seam** (§10) — small, independent. **Still open.**
 5. **Discord-surface reorganization** (§7) — moves files into feature slices; do before
-   §3 so the deepened dispatch module lands in its final home.
-6. **Fetcher validation + location mapping collapse** (§6).
-7. **Dispatch module deepening + integration tests** (§3, §11) — the biggest lever,
-   easiest once the noise around it is gone.
-8. **RSS decision** (§9) — needs a product decision (finish vs ops-managed).
+   §3 so the deepened dispatch module lands in its final home. **Still open** — §3 has
+   already landed, so this step no longer needs to precede it; re-verify §7c's dead-line
+   claims against the post-#61 call sites before executing.
+6. **Fetcher validation + location mapping collapse** (§6). **Still open.**
+7. ~~**Dispatch module deepening + integration tests** (§3, §11)~~ — **§3 done** via
+   PR #61; **§11 (integration tests against real Postgres) not yet confirmed** — check
+   what `features/dispatch/__tests__/` actually covers before considering this closed.
+8. ~~**RSS decision** (§9)~~ — **done**: PR #61 deleted RSS rather than finishing or
+   declaring it ops-managed.
 
 A note on what this document deliberately does **not** propose: unifying the eBird and
 RSS ingest slices under a shared pipeline abstraction. They are copy-paste-similar

@@ -2,7 +2,6 @@ import express from "express";
 import { authenticateApiKey } from "./middleware/auth";
 import { rateLimit } from "./middleware/rate-limit";
 import { createEbirdRoutes } from "./routes/ebird.routes";
-import { createRssRoutes } from "./routes/rss.routes";
 
 const app = express();
 const PORT = 8080;
@@ -25,16 +24,11 @@ app.get("/", (_req, res) => {
       "GET /v2/ref/species/info/{speciesCode}",
       "GET /v2/data/obs/geo/recent",
       "GET /v2/data/obs/geo/recent/notable",
-      "GET /rss - List available RSS feeds",
-      "GET /rss/{feedId} - Get specific RSS feed",
     ],
     message: "Mock API Server for Development",
     version: "2.0",
   });
 });
-
-// RSS routes (no auth required)
-app.use(createRssRoutes());
 
 // eBird routes (require auth and rate limiting)
 app.use("/v2", authenticateApiKey, rateLimit, createEbirdRoutes());
