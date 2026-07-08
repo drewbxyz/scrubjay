@@ -41,9 +41,7 @@ describe("BootstrapService", () => {
 
   it("tolerates per-region ingest failures", async () => {
     sourcesMock.getEBirdSources.mockResolvedValue(["US-CA", "US-WA"]);
-    ebirdServiceMock.ingestRegion.mockRejectedValueOnce(
-      new Error("eBird 500"),
-    );
+    ebirdServiceMock.ingestRegion.mockRejectedValueOnce(new Error("eBird 500"));
 
     await service.onModuleInit();
 
