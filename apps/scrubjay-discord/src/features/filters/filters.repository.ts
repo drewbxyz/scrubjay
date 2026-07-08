@@ -12,7 +12,7 @@ export class FiltersRepository {
 
   async isChannelFilterable(channelId: string) {
     const channelMeta =
-      this.drizzle.db.query.channelEBirdSubscriptions.findFirst({
+      await this.drizzle.db.query.channelEBirdSubscriptions.findFirst({
         where: eq(channelEBirdSubscriptions.channelId, channelId),
       });
     return !!channelMeta;
