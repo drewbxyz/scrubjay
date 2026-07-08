@@ -16,15 +16,7 @@ app.get("/health", (_req, res) => {
 // Root endpoint (no auth required)
 app.get("/", (_req, res) => {
   res.json({
-    endpoints: [
-      "GET /v2/data/obs/{regionCode}/recent",
-      "GET /v2/data/obs/{regionCode}/recent/notable",
-      "GET /v2/data/obs/{regionCode}/recent/{speciesCode}",
-      "GET /v2/ref/hotspot/{regionCode}",
-      "GET /v2/ref/species/info/{speciesCode}",
-      "GET /v2/data/obs/geo/recent",
-      "GET /v2/data/obs/geo/recent/notable",
-    ],
+    endpoints: ["GET /v2/data/obs/{regionCode}/recent/notable"],
     message: "Mock API Server for Development",
     version: "2.0",
   });
