@@ -12,6 +12,15 @@ export class ReactionListenerService {
   async onReactionAdd(
     @Context() [reaction, user]: ContextOf<Events.MessageReactionAdd>,
   ) {
+    if (user.partial) {
+      try {
+        user = await user.fetch();
+      } catch (error) {
+        this.logger.error(`Error fetching user: ${error}`);
+        return;
+      }
+    }
+
     if (user.bot) return; // ignore any bot
 
     if (reaction.partial) {

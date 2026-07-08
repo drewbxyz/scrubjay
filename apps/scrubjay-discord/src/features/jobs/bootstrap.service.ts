@@ -49,7 +49,7 @@ export class BootstrapService implements OnModuleInit {
               "Bootstrap did not complete within timeout, rejecting attempt",
             );
           }
-          reject();
+          reject(new Error("Bootstrap timed out after 5 minutes"));
         },
         5 * 60 * 1000,
       );
@@ -63,26 +63,24 @@ export class BootstrapService implements OnModuleInit {
 
     const regions = await this.sources.getEBirdSources();
 
-    try {
-      for (const region of regions) {
-        try {
-          const count = await this.ebirdService.ingestRegion(region);
-          this.logger.log(`Populated ${count} observations for ${region}`);
-        } catch (err) {
-          this.logger.error(`Population failed for ${region}: ${err}`);
-        }
+    for (const region of regions) {
+      try {
+        const count = await this.ebirdService.ingestRegion(region);
+        this.logger.log(`Populated ${count} observations for ${region}`);
+      } catch (err) {
+        this.logger.error(`Population failed for ${region}: ${err}`);
       }
-
-      const pending = await this.alertQueue.pendingEBirdAlerts();
-      await this.alertQueue.markSent(pending);
-      this.logger.log(
-        `Marked ${pending.length} pre-existing alerts as sent (bootstrap mode).`,
-      );
-
-      this.logger.log("Startup population complete.");
-    } finally {
-      // Always mark bootstrap as complete, even if there were errors
-      this.bootstrapComplete = true;
     }
+
+    // If marking pre-existing alerts fails, let onModuleInit reject: a
+    // crashed startup beats dispatching a burst of stale alerts (B6).
+    const pending = await this.alertQueue.pendingEBirdAlerts();
+    await this.alertQueue.markSent(pending);
+    this.logger.log(
+      `Marked ${pending.length} pre-existing alerts as sent (bootstrap mode).`,
+    );
+
+    this.logger.log("Startup population complete.");
+    this.bootstrapComplete = true;
   }
 }

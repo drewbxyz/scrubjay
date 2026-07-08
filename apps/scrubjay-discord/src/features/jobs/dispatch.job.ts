@@ -14,13 +14,17 @@ export class DispatchJob {
 
   @Cron("*/1 * * * *")
   async run() {
-    // Wait for bootstrap to complete before running
-    await this.bootstrapService.waitForBootstrap();
+    try {
+      // Wait for bootstrap to complete before running
+      await this.bootstrapService.waitForBootstrap();
 
-    const since = new Date(Date.now() - 15 * 60 * 1000);
-    this.logger.debug(
-      `Running dispatch job for alerts since ${since.toISOString()}`,
-    );
-    await this.ebirdDispatcher.dispatchSince(since);
+      const since = new Date(Date.now() - 15 * 60 * 1000);
+      this.logger.debug(
+        `Running dispatch job for alerts since ${since.toISOString()}`,
+      );
+      await this.ebirdDispatcher.dispatchSince(since);
+    } catch (err) {
+      this.logger.error(`Dispatch tick failed: ${err}`);
+    }
   }
 }
