@@ -66,11 +66,10 @@ describe("ReactionListenerService", () => {
   });
 
   it("still ignores plain bot users", async () => {
+    const plainBot = { bot: true, partial: false };
+
     // biome-ignore lint/suspicious/noExplicitAny: stubbed discord.js payload
-    await service.onReactionAdd([
-      fullReaction,
-      { bot: true, partial: false },
-    ] as any);
+    await service.onReactionAdd([fullReaction, plainBot] as any);
 
     expect(routerMock.route).not.toHaveBeenCalled();
   });
