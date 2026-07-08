@@ -6,12 +6,14 @@
   "devDependencies": {
     "@scrubjay/typescript-config": "workspace:*",
     "@types/express": "^5.0.6",
-    "tsx": "^4.23.0"
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.3"
   },
   "main": "index.js",
   "name": "test-api",
   "private": true,
   "scripts": {
+    "check-types": "tsc --noEmit",
     "dev": "tsx watch src/index.ts"
   },
   "version": "1.0.0"
