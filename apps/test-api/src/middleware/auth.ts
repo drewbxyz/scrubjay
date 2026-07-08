@@ -19,7 +19,3 @@ export function authenticateApiKey(
 
   next();
 }
-
-export function getApiKeys(): string[] {
-  return Array.from(apiKeys);
-}
