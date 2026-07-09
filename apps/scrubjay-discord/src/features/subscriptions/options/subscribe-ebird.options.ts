@@ -6,5 +6,5 @@ export class SubscribeEBirdOptions {
     name: "region",
     required: true,
   })
-  region: string;
+  region!: string;
 }

@@ -6,15 +6,15 @@
   "devDependencies": {
     "@scrubjay/typescript-config": "workspace:*",
     "@types/express": "^5.0.6",
-    "tsx": "^4.23.0",
-    "typescript": "^5.9.3"
+    "@typescript/native-preview": "7.0.0-dev.20260707.2"
   },
-  "main": "index.js",
+  "main": "src/index.ts",
   "name": "test-api",
   "private": true,
   "scripts": {
-    "check-types": "tsc --noEmit",
-    "dev": "tsx watch src/index.ts"
+    "check-types": "tsgo --noEmit",
+    "dev": "node --watch src/index.ts"
   },
+  "type": "module",
   "version": "1.0.0"
 }

@@ -6,9 +6,9 @@
 
     "lib": ["es2022"],
 
-    "module": "ESNext",
+    "module": "nodenext",
     "moduleDetection": "force",
-    "moduleResolution": "Node",
+    "moduleResolution": "nodenext",
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "outDir": "dist",

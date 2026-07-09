@@ -1,8 +1,8 @@
 import express from "express";
 import moment from "moment-timezone";
-import { hotspots } from "../data/hotspots";
-import { regions } from "../data/regions";
-import { species } from "../data/species";
+import { hotspots } from "../data/hotspots.ts";
+import { regions } from "../data/regions.ts";
+import { species } from "../data/species.ts";
 
 export interface eBirdObservation {
   speciesCode: string;

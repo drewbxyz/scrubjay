@@ -1,7 +1,7 @@
 import express from "express";
-import { authenticateApiKey } from "./middleware/auth";
-import { rateLimit } from "./middleware/rate-limit";
-import { createEbirdRoutes } from "./routes/ebird.routes";
+import { authenticateApiKey } from "./middleware/auth.ts";
+import { rateLimit } from "./middleware/rate-limit.ts";
+import { createEbirdRoutes } from "./routes/ebird.routes.ts";
 
 const app = express();
 const PORT = 8080;
