@@ -3,39 +3,31 @@ import type { Pool } from "pg";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { createTestDb, truncateAll } from "@/testing/db-helpers";
-import type { TransformedEBirdObservation } from "../ebird.schema";
+import type { Observation } from "../observation.interface";
 import { ObservationRepository } from "../observation.repository";
 
-const baseObservation: TransformedEBirdObservation = {
+const baseObservation: Observation = {
   audioCount: 0,
-  checklistId: "CL1",
   comName: "Vermilion Flycatcher",
-  countryCode: "US",
-  countryName: "United States",
-  firstName: "",
+  county: "Santa Clara",
+  countyCode: "US-CA-085",
   hasComments: false,
-  hasRichMedia: false,
   howMany: 1,
-  lastName: "",
+  isPrivate: false,
   lat: 37.3,
   lng: -122.0,
-  locationPrivate: false,
+  locationName: "Test Hotspot",
   locId: "L001",
-  locName: "Test Hotspot",
-  obsDt: "2026-07-07 09:00",
-  obsId: "OBS1",
+  obsDt: new Date("2026-07-07T09:00:00Z"),
   obsReviewed: false,
   obsValid: false,
   photoCount: 0,
   presenceNoted: false,
   sciName: "Pyrocephalus rubinus",
   speciesCode: "verfly",
+  state: "California",
+  stateCode: "US-CA",
   subId: "S001",
-  subnational1Code: "US-CA",
-  subnational1Name: "California",
-  subnational2Code: "US-CA-085",
-  subnational2Name: "Santa Clara",
-  userDisplayName: "",
   videoCount: 0,
 };
 
@@ -85,8 +77,8 @@ describe("ObservationRepository", () => {
       await repository.upsertObservation(baseObservation);
       await repository.upsertObservation({
         ...baseObservation,
-        locationPrivate: true,
-        locName: "New Name",
+        isPrivate: true,
+        locationName: "New Name",
       });
 
       const row = await db.db.query.locations.findFirst({

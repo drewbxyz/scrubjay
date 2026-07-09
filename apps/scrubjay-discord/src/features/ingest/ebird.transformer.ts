@@ -1,49 +1,58 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  EBirdObservation,
-  TransformedEBirdObservation,
-} from "./ebird.schema";
+import type { EBirdObservation } from "./ebird.schema";
+import type { Observation } from "./observation.interface";
 
 @Injectable()
 export class EBirdTransformer {
-  private countMedia(observation: EBirdObservation) {
-    return {
-      audioCount: observation.evidence === "A" ? 1 : 0,
-      photoCount: observation.evidence === "P" ? 1 : 0,
-      videoCount: observation.evidence === "V" ? 1 : 0,
-    };
-  }
-
-  private isPresenceNoted(curr: boolean, acc: boolean) {
-    return curr || acc;
-  }
-
-  transformObservations(raw: EBirdObservation[]) {
-    const reduced = raw.reduce((acc, observation) => {
-      const key = `${observation.speciesCode}-${observation.subId}`;
-      const mediaCounts = this.countMedia(observation);
-
+  /**
+   * The eBird→domain translation line: dedupes reports per
+   * species × checklist, tallies media evidence into counts, and renames
+   * vendor vocabulary to domain vocabulary. Everything downstream speaks
+   * Observation, not eBird.
+   */
+  transformObservations(raw: EBirdObservation[]): Observation[] {
+    const reduced = raw.reduce((acc, row) => {
+      const key = `${row.speciesCode}-${row.subId}`;
       const existing = acc.get(key);
+
       if (existing) {
-        acc.set(key, {
-          ...existing,
-          audioCount: existing.audioCount + mediaCounts.audioCount,
-          photoCount: existing.photoCount + mediaCounts.photoCount,
-          presenceNoted: this.isPresenceNoted(
-            existing.presenceNoted,
-            observation.presenceNoted,
-          ),
-          videoCount: existing.videoCount + mediaCounts.videoCount,
-        });
+        existing.audioCount += row.evidence === "A" ? 1 : 0;
+        existing.photoCount += row.evidence === "P" ? 1 : 0;
+        existing.videoCount += row.evidence === "V" ? 1 : 0;
+        existing.presenceNoted = existing.presenceNoted || row.presenceNoted;
       } else {
-        acc.set(key, {
-          ...observation,
-          ...mediaCounts,
-        });
+        acc.set(key, this.toObservation(row));
       }
 
       return acc;
-    }, new Map<string, TransformedEBirdObservation>());
+    }, new Map<string, Observation>());
     return Array.from(reduced.values());
+  }
+
+  private toObservation(row: EBirdObservation): Observation {
+    return {
+      audioCount: row.evidence === "A" ? 1 : 0,
+      comName: row.comName,
+      county: row.subnational2Name,
+      countyCode: row.subnational2Code,
+      hasComments: row.hasComments,
+      howMany: row.howMany ?? 0,
+      isPrivate: row.locationPrivate,
+      lat: row.lat,
+      lng: row.lng,
+      locationName: row.locName,
+      locId: row.locId,
+      obsDt: new Date(row.obsDt),
+      obsReviewed: row.obsReviewed,
+      obsValid: row.obsValid,
+      photoCount: row.evidence === "P" ? 1 : 0,
+      presenceNoted: row.presenceNoted,
+      sciName: row.sciName,
+      speciesCode: row.speciesCode,
+      state: row.subnational1Name,
+      stateCode: row.subnational1Code,
+      subId: row.subId,
+      videoCount: row.evidence === "V" ? 1 : 0,
+    };
   }
 }

@@ -1,12 +1,10 @@
 import { Logger } from "@nestjs/common";
 import { Test, type TestingModule } from "@nestjs/testing";
 import { EBirdFetcher } from "../ebird.fetcher";
-import type {
-  EBirdObservation,
-  TransformedEBirdObservation,
-} from "../ebird.schema";
+import type { EBirdObservation } from "../ebird.schema";
 import { EBirdTransformer } from "../ebird.transformer";
 import { IngestService } from "../ingest.service";
+import type { Observation } from "../observation.interface";
 import { ObservationRepository } from "../observation.repository";
 
 describe("IngestService", () => {
@@ -55,10 +53,28 @@ describe("IngestService", () => {
     userDisplayName: "",
   };
 
-  const transformedObservation: TransformedEBirdObservation = {
-    ...rawObservation,
+  const transformedObservation: Observation = {
     audioCount: 0,
+    comName: "Common Loon",
+    county: "King",
+    countyCode: "US-WA-033",
+    hasComments: false,
+    howMany: 2,
+    isPrivate: false,
+    lat: 47.6062,
+    lng: -122.3321,
+    locationName: "Lake Union",
+    locId: "loc-1",
+    obsDt: new Date("2024-01-01T10:00:00Z"),
+    obsReviewed: true,
+    obsValid: true,
     photoCount: 1,
+    presenceNoted: false,
+    sciName: "Gavia immer",
+    speciesCode: "comloo",
+    state: "Washington",
+    stateCode: "US-WA",
+    subId: "sub-1",
     videoCount: 0,
   };
 

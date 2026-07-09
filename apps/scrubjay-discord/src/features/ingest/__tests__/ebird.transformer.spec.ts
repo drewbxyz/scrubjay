@@ -66,4 +66,29 @@ describe("EBirdTransformer", () => {
       videoCount: 0,
     });
   });
+
+  it("translates eBird vocabulary into domain fields", () => {
+    const [result] = transformer.transformObservations([baseObservation]);
+
+    expect(result).toMatchObject({
+      county: "King",
+      countyCode: "US-WA-033",
+      howMany: 2,
+      isPrivate: false,
+      locationName: "Lake Union",
+      state: "Washington",
+      stateCode: "US-WA",
+    });
+    expect(result.obsDt).toEqual(new Date("2024-01-01T10:00:00Z"));
+    expect(result).not.toHaveProperty("subnational1Name");
+    expect(result).not.toHaveProperty("evidence");
+  });
+
+  it("defaults howMany to zero when eBird omits it", () => {
+    const [result] = transformer.transformObservations([
+      { ...baseObservation, howMany: undefined },
+    ]);
+
+    expect(result.howMany).toBe(0);
+  });
 });

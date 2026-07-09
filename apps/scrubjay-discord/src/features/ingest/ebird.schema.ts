@@ -32,12 +32,3 @@ export const RawEBirdObservationSchema = z.object({
 });
 
 export type EBirdObservation = z.infer<typeof RawEBirdObservationSchema>;
-
-export interface EBirdMediaCounts {
-  photoCount: number;
-  audioCount: number;
-  videoCount: number;
-}
-
-export type TransformedEBirdObservation = Omit<EBirdObservation, "evidence"> &
-  EBirdMediaCounts;
