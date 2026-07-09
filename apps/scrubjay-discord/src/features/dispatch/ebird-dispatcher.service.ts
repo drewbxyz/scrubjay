@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EmbedBuilder } from "discord.js";
-import { ChannelSenderService } from "@/discord/channel-sender.service";
+import { MessageSenderService } from "@/discord/message-sender.service";
 import {
   AlertQueue,
   type PendingEBirdAlert,
@@ -13,7 +13,7 @@ export class EBirdDispatcherService {
 
   constructor(
     private readonly alertQueue: AlertQueue,
-    private readonly sender: ChannelSenderService,
+    private readonly sender: MessageSenderService,
   ) {}
 
   private groupAlerts(alerts: PendingEBirdAlert[]) {

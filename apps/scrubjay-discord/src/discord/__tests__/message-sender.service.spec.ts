@@ -1,15 +1,15 @@
 import type { Client } from "discord.js";
-import { ChannelSenderService } from "../channel-sender.service";
+import { MessageSenderService } from "../message-sender.service";
 
-describe("ChannelSenderService", () => {
-  let sender: ChannelSenderService;
+describe("MessageSenderService", () => {
+  let sender: MessageSenderService;
 
   const fetchMock = jest.fn();
   const clientMock = { channels: { fetch: fetchMock } } as unknown as Client;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    sender = new ChannelSenderService(clientMock);
+    sender = new MessageSenderService(clientMock);
   });
 
   it("sends to a sendable channel", async () => {

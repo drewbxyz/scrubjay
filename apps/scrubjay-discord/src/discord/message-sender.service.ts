@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Client, type MessageCreateOptions } from "discord.js";
 
 @Injectable()
-export class ChannelSenderService {
+export class MessageSenderService {
   constructor(private readonly client: Client) {}
 
   async send(
