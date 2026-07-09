@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EmbedBuilder } from "discord.js";
-import { DiscordHelper } from "@/discord/discord.helper";
+import { MessageSenderService } from "@/discord/message-sender.service";
 import {
   AlertQueue,
   type PendingEBirdAlert,
@@ -13,7 +13,7 @@ export class EBirdDispatcherService {
 
   constructor(
     private readonly alertQueue: AlertQueue,
-    private readonly discord: DiscordHelper,
+    private readonly sender: MessageSenderService,
   ) {}
 
   private groupAlerts(alerts: PendingEBirdAlert[]) {
@@ -125,7 +125,7 @@ export class EBirdDispatcherService {
     embed.addFields({ name: "Details", value: reportText });
 
     try {
-      await this.discord.sendEmbedToChannel(channelId, embed);
+      await this.sender.send(channelId, { embeds: [embed] });
     } catch (err) {
       this.logger.error(`Failed to send embed to channel: ${err}`);
     }

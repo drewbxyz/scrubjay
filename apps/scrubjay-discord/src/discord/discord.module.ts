@@ -1,18 +1,9 @@
 import { Module } from "@nestjs/common";
-import { FiltersModule } from "@/features/filters/filters.module";
-import { CommandsModule } from "./commands/commands.module";
-import { DiscordHelper } from "./discord.helper";
-import { ListenersModule } from "./listeners/listeners.module";
-import { ReactionRouterModule } from "./reaction-router/reaction-router.module";
+import { LifecycleUpdate } from "./lifecycle.update";
+import { MessageSenderService } from "./message-sender.service";
 
 @Module({
-  exports: [DiscordHelper],
-  imports: [
-    ReactionRouterModule,
-    CommandsModule,
-    ListenersModule,
-    FiltersModule,
-  ],
-  providers: [DiscordHelper],
+  exports: [MessageSenderService],
+  providers: [MessageSenderService, LifecycleUpdate],
 })
 export class DiscordModule {}
