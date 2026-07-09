@@ -26,6 +26,31 @@ verified by grep; every code excerpt is verbatim from the tree at commit `e29ccb
 > "set this to true or false" placeholders (introduced in `29eb15b`), which made
 > `pnpm install` hard-fail on pnpm 11 — the first PR to run CI after that commit caught it.
 
+> **Status update — 2026-07-08: this roadmap is essentially complete.** PRs #63–#67
+> landed everything that was still open: #63 wired `check-types` + the full Jest suite
+> into CI with a `test` task in `turbo.json` (closes §11); #64 swatted the §2 latent
+> bugs (B1, B3, B6–B10); #65 replaced Joi with a zod config schema read through
+> `ConfigService` everywhere, `main.ts` included (closes §10, fixes B4/B5); #66
+> reorganized the Discord surface the Necord way — commands/reactions in their feature
+> slices, `DiscordHelper` collapsed to `MessageSenderService`, `necord.config.ts`
+> (closes §7, fixes B9); #67 made the fetcher seam honest with `safeParse` at the
+> boundary and deleted the pass-through services and dead eBird chain (closes §6 and
+> the §4 remainder). A follow-up refactor (merged 2026-07-08, `cdc0c75`) went beyond
+> this document: dispatch inversion (pure `ebird-alert.formatter.ts`, `DispatchService`
+> owning send-then-record with at-least-once semantics) and an ingest boundary
+> (`features/ingest` with a domain `Observation` type, transactional
+> `upsertObservation`, vendor names confined to the eBird edge).
+>
+> **Still open (crumbs):** the `core/timezones` / `county_timezones` drop-table
+> decision (§8); `subscriptions.module.spec.ts` DI-ceremony spec (§8); the broken
+> `test:e2e` script still pointing at a missing `test/jest-e2e.json` (B11's script
+> half — CI runs the real suite, so this is cosmetic); and B2's underlying fragility —
+> species is still parsed from the embed title (now hardened with `lastIndexOf(" - ")`
+> in `filters.reactions.ts`), not carried as a stable id.
+>
+> Per-section status lines below predate this update; where they conflict with this
+> banner, the banner wins.
+
 ## Vocabulary used in this document
 
 - **Module** — anything with an interface and an implementation (function, class, package, slice).
@@ -74,6 +99,11 @@ before or alongside any cleanup, and several are one-liners.
 
 _Re-verified 2026-07-07 against current tree. Status column added; unmarked = still open
 exactly as described._
+
+_2026-07-08: all rows are now resolved — B1/B3/B6–B10 via PR #64, B4/B5 via PR #65,
+B9's partial-user guard via PR #66, B11's CI half via PR #63. Exceptions: B2's
+title-parsing fragility remains (hardened, not eliminated), and the dead `test:e2e`
+script still points at a missing config. The status cells below are historical._
 
 | # | Bug | Where | Effect | Status |
 |---|-----|-------|--------|--------|
@@ -201,11 +231,9 @@ predicate.
 
 ## 4. Opportunity: delete the pass-through service layer
 
-> **Status: partially done.** `deliveries/` disappeared as a side effect of §3 (PR #61),
-> which resolves that bullet. **Still open, re-verified 2026-07-07:** `FiltersService`
-> and `SourcesService` both still exist as verbatim delegates; the dead eBird chain
-> (`EBirdService.getObservationsSinceCreatedDate` → `EBirdRepository.getAlertsCreatedSinceDate`)
-> is also still present, callers unchanged.
+> **Status: done (2026-07-08).** `deliveries/` disappeared with §3 (PR #61);
+> `FiltersService`, `SourcesService`, and the dead eBird chain were all deleted via
+> PR #67 and the ebird-seam branch — callers inject the repositories directly.
 
 **Files:** `filters/filters.service.ts`, `sources/sources.service.ts`,
 `ebird/ebird.service.ts:56-58`, `ebird/ebird.repository.ts:68-72`
@@ -291,10 +319,11 @@ seam that remains is the one that actually exists.
 
 ## 6. Opportunity: make the fetcher seam honest (validate or drop zod)
 
-> **Status: open.** Re-verified 2026-07-07: `ebird.fetcher.ts` still does
-> `await response.json()` and casts, with no `.parse(`/`.safeParse(` anywhere. The
-> `rss/rss.schema.ts` half is moot now that RSS is deleted (§9), but the eBird half of
-> this opportunity — including B3's location-mapping fix — is untouched.
+> **Status: done (2026-07-08).** PR #67 landed the eBird half: the fetcher now
+> `safeParse`s each row at the boundary (`ingest/ebird.fetcher.ts`), and the
+> location-mapping transcription collapsed into the transactional `upsertObservation`
+> (pipeline-boundaries refactor). The RSS half was moot after §9. File paths below are
+> stale — the slice now lives at `features/ingest/`.
 
 **Files:** `ebird/ebird.schema.ts`, `ebird/ebird.fetcher.ts`, `ebird/ebird.transformer.ts`,
 `ebird/ebird.repository.ts`
@@ -345,14 +374,12 @@ home. ~40 lines net deletion.
 
 ## 7. Opportunity: organize the Discord surface the Necord way
 
-> **Status: open, entirely.** Re-verified 2026-07-07: `discord/reaction-router/` still
-> has all 5 files described in §7a; `discord/commands/` is still a central folder
-> (`commands.dto.ts`, `commands.module.ts`, `subscription-commands.service.ts`,
-> `util-commands.service.ts`) rather than commands living in their feature slices per
-> §7b; `discord.helper.ts` is still 111 lines with all four methods
-> (`sendEmbedsToChannel`, `sendEmbedToChannel`, `sendMessageToChannel`, `getChannel`) —
-> the claimed dead-caller counts in §7c should be re-verified against the post-#61 tree
-> before deleting, since dispatch's call sites moved.
+> **Status: done (2026-07-08).** PR #66 landed the reorganization: reaction plumbing
+> collapsed to `features/filters/filters.reactions.ts` (a single Necord `@On` handler
+> with the partial-user guard, fixing B9, and a config-driven threshold); commands live
+> in their feature slices (`subscriptions/subscriptions.commands.ts` + options DTO);
+> `DiscordHelper` shrank to `discord/message-sender.service.ts`; cross-cutting infra
+> sits in `discord/common/` with `necord.config.ts`.
 
 This addresses "idk how to organize some of the stuff cleanly" directly. Necord's docs
 prescribe little, but its two official references establish clear conventions
@@ -459,7 +486,13 @@ src/
 
 ## 8. Opportunity: delete the dead weight
 
-> **Status: partially done.** The `apps/test-api` rows landed via PR #62 (2026-07-07):
+> **Status: mostly done (2026-07-08).** Since the note below: `packages/database/` and
+> `packages/vitest-config/` are deleted (only `typescript-config` remains),
+> `EBirdObservationResponse` is gone, and the dead eBird chain went with §4. Still
+> open: the `core/timezones` / `county_timezones` drop-table decision,
+> `subscriptions.module.spec.ts`, and the `test:e2e` script (B11's cosmetic half).
+>
+> Earlier update: the `apps/test-api` rows landed via PR #62 (2026-07-07):
 > the dead root-level trio is gone, plus the RSS mock surface, 6 unused mock endpoints,
 > and unused deps the original audit missed (`moment`, `tsup`, `getApiKeys`). Stale
 > `dist/` was deleted locally (gitignored, nothing to commit). Still open:
@@ -539,9 +572,13 @@ the code, whichever option is chosen.
 
 ## 10. Opportunity: one honest config seam
 
-> **Status: open.** Re-verified 2026-07-07 — the drift table below is unchanged: Joi
-> still lacks `DATABASE_URL`/`PORT`, `main.ts` still reads them via raw `process.env`,
-> and `DEVELOPMENT_SERVER` vs `DEVELOPMENT_SERVER_ID` is still mismatched (B4/B5).
+> **Status: done (2026-07-08).** PR #65 replaced Joi with a zod schema
+> (`core/config/config.schema.ts`) covering exactly the vars the app reads —
+> `DATABASE_URL`, `PORT` (coerced, default 3000), `DEVELOPMENT_GUILD_ID`,
+> `DISCORD_CLIENT_ID`, `DISCORD_TOKEN`, `EBIRD_BASE_URL`, `EBIRD_TOKEN`,
+> `FILTER_REACTION_THRESHOLD` — and `main.ts` now reads through
+> `ConfigService<AppConfig, true>`. Fixes B4 and B5; the drift table below is
+> historical.
 
 **Files:** `app.module.ts`, `main.ts`, `core/drizzle/drizzle.module.ts`
 
@@ -569,15 +606,12 @@ schema becomes trustworthy documentation of the deployment contract.
 
 ## 11. Opportunity: a test strategy that matches the seams
 
-> **Status update — 2026-07-07.** The centerpiece landed: the dispatch module is
-> integration-tested against real Postgres through the `AlertQueue` interface (see §3
-> for verified coverage). What remains is the last bullet, and it's now the single
-> highest-leverage item in this document: **nothing runs the tests.** `turbo.json`
-> defines no `test` task, and the Status Checks workflow runs only
-> `pnpm run format-and-lint` — not `check-types`, not `jest`. A predicate regression
-> in the dispatch join would pass CI today. Wiring a `test` task + a Postgres service
-> container into CI (plus `check-types`) converts the already-paid-for suite into
-> standing protection and de-risks every remaining refactor (§4, §6, §7, §10).
+> **Status: done (2026-07-08).** The centerpiece landed with §3 (real-Postgres
+> integration suite through the `AlertQueue` interface), and PR #63 closed the last
+> bullet: `turbo.json` defines a `test` task and the Status Checks workflow runs
+> `pnpm run check-types` and `pnpm run test` on every PR. Specs are now co-located
+> beside their sources per Nest convention (pipeline-boundaries refactor). The only
+> loose end is the dead `test:e2e` script (B11's cosmetic half, see §8).
 
 Current inventory (13 spec files): 4 test real behaviour through an interface (the two
 transformers, the eBird fetcher, region parsing), 5 re-encode implementation call
@@ -607,6 +641,11 @@ refactoring.
 ## 12. Suggested sequencing
 
 Each step is independently shippable; ordering minimizes rework.
+
+_Status as of 2026-07-08: every step is complete (see the banner at the top). The only
+remainders are the §8 crumbs: the `core/timezones` drop-table decision,
+`subscriptions.module.spec.ts`, the `test:e2e` script, and B2's title-parsing
+fragility. The list below is historical._
 
 _Status as of 2026-07-07: PR #61 jumped ahead and landed step 7 (dispatch deepening,
 §3) and step 8 (RSS decision, §9) before steps 1–6, which incidentally also finished
