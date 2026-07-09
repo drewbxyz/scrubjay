@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { MessageFlags } from "discord.js";
 import { NecordArgumentsHost, type SlashCommandContext } from "necord";
-import { InvalidRegionError } from "@/features/subscriptions/invalid-region.error";
+import { UserFacingError } from "../errors/user-facing.error";
 
 const GENERIC_MESSAGE = "Something went wrong running that command.";
 
@@ -23,9 +23,7 @@ export class CommandExceptionFilter implements ExceptionFilter {
     this.logger.error(error.message, error.stack);
 
     const content =
-      exception instanceof InvalidRegionError
-        ? exception.message
-        : GENERIC_MESSAGE;
+      error instanceof UserFacingError ? error.message : GENERIC_MESSAGE;
 
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content });

@@ -1,6 +1,6 @@
 import type { ArgumentsHost } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
-import { InvalidRegionError } from "@/features/subscriptions/invalid-region.error";
+import { UserFacingError } from "../../errors/user-facing.error";
 import { CommandExceptionFilter } from "../command-exception.filter";
 
 describe("CommandExceptionFilter", () => {
@@ -31,8 +31,8 @@ describe("CommandExceptionFilter", () => {
     loggerErrorSpy.mockRestore();
   });
 
-  it("passes an InvalidRegionError message through verbatim", async () => {
-    await filter.catch(new InvalidRegionError("US"), host);
+  it("passes a user-facing error message through verbatim", async () => {
+    await filter.catch(new UserFacingError("Invalid region code: US"), host);
 
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({ content: "Invalid region code: US" }),
