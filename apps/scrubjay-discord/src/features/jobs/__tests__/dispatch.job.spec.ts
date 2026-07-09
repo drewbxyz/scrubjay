@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import type { EBirdDispatcherService } from "@/features/dispatch/ebird-dispatcher.service";
+import type { DispatchService } from "@/features/dispatch/dispatch.service";
 import type { BootstrapService } from "../bootstrap.service";
 import { DispatchJob } from "../dispatch.job";
 
@@ -21,7 +21,7 @@ describe("DispatchJob", () => {
     bootstrapMock.waitForBootstrap.mockResolvedValue(undefined);
 
     job = new DispatchJob(
-      dispatcherMock as unknown as EBirdDispatcherService,
+      dispatcherMock as unknown as DispatchService,
       bootstrapMock as unknown as BootstrapService,
     );
   });
