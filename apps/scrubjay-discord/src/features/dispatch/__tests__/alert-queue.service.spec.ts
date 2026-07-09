@@ -10,7 +10,7 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import { AlertQueue } from "../alert-queue";
+import { AlertQueue } from "../alert-queue.service";
 import { AlertQueueRepository } from "../alert-queue.repository";
 
 describe("AlertQueue", () => {

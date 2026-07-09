@@ -5,7 +5,7 @@ import {
   AlertQueue,
   type PendingEBirdAlert,
   type SentAlert,
-} from "./alert-queue";
+} from "./alert-queue.service";
 
 @Injectable()
 export class EBirdDispatcherService {

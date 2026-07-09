@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { AlertQueue } from "@/features/dispatch/alert-queue";
+import { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import { EBirdService } from "@/features/ebird/ebird.service";
 import { SourcesRepository } from "@/features/sources/sources.repository";
 

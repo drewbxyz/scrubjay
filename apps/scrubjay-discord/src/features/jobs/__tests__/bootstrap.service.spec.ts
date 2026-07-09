@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import type { AlertQueue } from "@/features/dispatch/alert-queue";
+import type { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import type { EBirdService } from "@/features/ebird/ebird.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
 import { BootstrapService } from "../bootstrap.service";
