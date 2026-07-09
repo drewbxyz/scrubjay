@@ -1,10 +1,11 @@
+import { Logger } from "@nestjs/common";
 import { Test, type TestingModule } from "@nestjs/testing";
 import { EBirdFetcher } from "../ebird.fetcher";
-import { EBirdTransformer } from "../ebird.transformer";
 import type {
   EBirdObservation,
   TransformedEBirdObservation,
 } from "../ebird.schema";
+import { EBirdTransformer } from "../ebird.transformer";
 import { IngestService } from "../ingest.service";
 import { ObservationRepository } from "../observation.repository";
 
@@ -20,7 +21,6 @@ describe("IngestService", () => {
   };
 
   const repoMock = {
-    upsertLocation: jest.fn(),
     upsertObservation: jest.fn(),
   };
 
@@ -101,9 +101,6 @@ describe("IngestService", () => {
     transformerMock.transformObservations.mockReturnValue([
       transformedObservation,
     ]);
-    const ingestSpy = jest
-      .spyOn(service, "ingestObservation")
-      .mockResolvedValue();
 
     const inserted = await service.ingestRegion("US-WA");
 
@@ -111,19 +108,23 @@ describe("IngestService", () => {
     expect(transformerMock.transformObservations).toHaveBeenCalledWith([
       rawObservation,
     ]);
-    expect(ingestSpy).toHaveBeenCalledTimes(1);
-    expect(ingestSpy).toHaveBeenCalledWith(transformedObservation);
-    expect(inserted).toBe(1);
-  });
-
-  it("writes a single observation to both location and observation tables", async () => {
-    await service.ingestObservation(transformedObservation);
-
-    expect(repoMock.upsertLocation).toHaveBeenCalledWith(
-      transformedObservation,
-    );
     expect(repoMock.upsertObservation).toHaveBeenCalledWith(
       transformedObservation,
     );
+    expect(inserted).toBe(1);
+  });
+
+  it("continues past a failed observation and counts only successes", async () => {
+    jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    fetcherMock.fetchRareObservations.mockResolvedValue([rawObservation]);
+    transformerMock.transformObservations.mockReturnValue([
+      transformedObservation,
+      { ...transformedObservation, subId: "sub-2" },
+    ]);
+    repoMock.upsertObservation.mockRejectedValueOnce(new Error("db down"));
+
+    const inserted = await service.ingestRegion("US-WA");
+
+    expect(inserted).toBe(1);
   });
 });

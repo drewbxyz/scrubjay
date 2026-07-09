@@ -1,10 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EBirdFetcher } from "./ebird.fetcher";
+import type { EBirdObservation } from "./ebird.schema";
 import { EBirdTransformer } from "./ebird.transformer";
-import type {
-  EBirdObservation,
-  TransformedEBirdObservation,
-} from "./ebird.schema";
 import { ObservationRepository } from "./observation.repository";
 
 @Injectable()
@@ -35,7 +32,7 @@ export class IngestService {
     let insertedCount = 0;
     for (const obs of transformedObservations) {
       try {
-        await this.ingestObservation(obs);
+        await this.repo.upsertObservation(obs);
         insertedCount++;
       } catch (_err) {
         this.logger.warn(
@@ -45,10 +42,5 @@ export class IngestService {
     }
 
     return insertedCount;
-  }
-
-  async ingestObservation(observation: TransformedEBirdObservation) {
-    await this.repo.upsertLocation(observation);
-    await this.repo.upsertObservation(observation);
   }
 }

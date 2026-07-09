@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { Pool } from "pg";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
-import { createTestDb, seedLocation, truncateAll } from "@/testing/db-helpers";
+import { createTestDb, truncateAll } from "@/testing/db-helpers";
 import type { TransformedEBirdObservation } from "../ebird.schema";
 import { ObservationRepository } from "../observation.repository";
 
@@ -57,31 +57,21 @@ describe("ObservationRepository", () => {
     await truncateAll(db);
   });
 
-  describe("upsertLocation", () => {
-    it("propagates renames and privacy changes on conflict", async () => {
-      const observationAtL100: TransformedEBirdObservation = {
-        ...baseObservation,
-        locId: "L100",
-        locName: "Old Name",
-      };
-      await repository.upsertLocation(observationAtL100);
-      await repository.upsertLocation({
-        ...observationAtL100,
-        locationPrivate: true,
-        locName: "New Name",
-      });
-
-      const row = await db.db.query.locations.findFirst({
-        where: eq(locations.id, "L100"),
-      });
-      expect(row?.name).toBe("New Name");
-      expect(row?.isPrivate).toBe(true);
-    });
-  });
-
   describe("upsertObservation", () => {
+    it("persists the observation and its embedded location in one call", async () => {
+      await repository.upsertObservation(baseObservation);
+
+      const location = await db.db.query.locations.findFirst({
+        where: eq(locations.id, "L001"),
+      });
+      const observation = await db.db.query.observations.findFirst({
+        where: eq(observations.subId, "S001"),
+      });
+      expect(location?.name).toBe("Test Hotspot");
+      expect(observation?.speciesCode).toBe("verfly");
+    });
+
     it("updates mapped columns on conflict", async () => {
-      await seedLocation(db); // provides locId L001 for the FK
       await repository.upsertObservation(baseObservation);
       await repository.upsertObservation({ ...baseObservation, howMany: 7 });
 
@@ -89,6 +79,21 @@ describe("ObservationRepository", () => {
         where: eq(observations.subId, "S001"),
       });
       expect(row?.howMany).toBe(7);
+    });
+
+    it("propagates location renames and privacy changes on conflict", async () => {
+      await repository.upsertObservation(baseObservation);
+      await repository.upsertObservation({
+        ...baseObservation,
+        locationPrivate: true,
+        locName: "New Name",
+      });
+
+      const row = await db.db.query.locations.findFirst({
+        where: eq(locations.id, "L001"),
+      });
+      expect(row?.name).toBe("New Name");
+      expect(row?.isPrivate).toBe(true);
     });
   });
 });
