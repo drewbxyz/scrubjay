@@ -1,11 +1,10 @@
 import { Module } from "@nestjs/common";
 import { ChannelSenderService } from "./channel-sender.service";
-import { ListenersModule } from "./listeners/listeners.module";
+import { LifecycleUpdate } from "./lifecycle.update";
 import { UtilCommands } from "./util.commands";
 
 @Module({
   exports: [ChannelSenderService],
-  imports: [ListenersModule],
-  providers: [ChannelSenderService, UtilCommands],
+  providers: [ChannelSenderService, LifecycleUpdate, UtilCommands],
 })
 export class DiscordModule {}
