@@ -141,6 +141,7 @@ describe("IngestService", () => {
 
     const inserted = await service.ingestRegion("US-WA");
 
+    expect(repoMock.upsertObservation).toHaveBeenCalledTimes(2);
     expect(inserted).toBe(1);
   });
 });

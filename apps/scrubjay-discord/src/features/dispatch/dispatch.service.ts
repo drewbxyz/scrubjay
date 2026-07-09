@@ -22,7 +22,7 @@ export class DispatchService {
     private readonly sender: MessageSenderService,
   ) {}
 
-  async dispatchSince(since: Date) {
+  async dispatchSince(since: Date): Promise<void> {
     const pending = await this.alertQueue.pendingEBirdAlerts(since);
 
     if (pending.length === 0) {
@@ -45,7 +45,9 @@ export class DispatchService {
 
     await this.alertQueue.markSent(sent);
 
-    this.logger.log(`Marked ${sent.length} alerts as delivered`);
+    if (sent.length > 0) {
+      this.logger.log(`Marked ${sent.length} alerts as delivered`);
+    }
   }
 }
 

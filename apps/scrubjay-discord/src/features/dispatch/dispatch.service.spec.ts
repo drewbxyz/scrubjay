@@ -78,6 +78,7 @@ describe("DispatchService", () => {
     await service.dispatchSince(since);
 
     expect(senderMock.send).toHaveBeenCalledTimes(2);
+    expect(alertQueueMock.markSent).toHaveBeenCalledTimes(1);
     expect(alertQueueMock.markSent).toHaveBeenCalledWith([
       { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
       { channelId: "CH1", speciesCode: "verfly", subId: "S002" },
