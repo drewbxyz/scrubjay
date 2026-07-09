@@ -48,12 +48,7 @@ export class EBirdService {
   }
 
   async ingestObservation(observation: TransformedEBirdObservation) {
-    const location = this.transformer.extractLocation(observation);
-    await this.repo.upsertLocation(location);
+    await this.repo.upsertLocation(observation);
     await this.repo.upsertObservation(observation);
-  }
-
-  async getObservationsSinceCreatedDate(since: Date) {
-    return this.repo.getAlertsCreatedSinceDate(since);
   }
 }

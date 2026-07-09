@@ -1,7 +1,7 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { AlertQueue } from "@/features/dispatch/alert-queue";
 import { EBirdService } from "@/features/ebird/ebird.service";
-import { SourcesService } from "@/features/sources/sources.service";
+import { SourcesRepository } from "@/features/sources/sources.repository";
 
 /**
  * Populates DB on startup without triggering any Discord messages.
@@ -17,7 +17,7 @@ export class BootstrapService implements OnModuleInit {
   constructor(
     private readonly ebirdService: EBirdService,
     private readonly alertQueue: AlertQueue,
-    private readonly sources: SourcesService,
+    private readonly sources: SourcesRepository,
   ) {}
 
   /**

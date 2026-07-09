@@ -4,24 +4,7 @@ import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { createTestDb, seedLocation, truncateAll } from "@/testing/db-helpers";
 import { EBirdRepository } from "../ebird.repository";
-import type {
-  EBirdLocation,
-  TransformedEBirdObservation,
-} from "../ebird.schema";
-
-const baseLocation: EBirdLocation = {
-  countryCode: "US",
-  countryName: "United States",
-  lat: 37.3,
-  lng: -122.0,
-  locationPrivate: false,
-  locId: "L100",
-  locName: "Old Name",
-  subnational1Code: "US-CA",
-  subnational1Name: "California",
-  subnational2Code: "US-CA-085",
-  subnational2Name: "Santa Clara",
-};
+import type { TransformedEBirdObservation } from "../ebird.schema";
 
 const baseObservation: TransformedEBirdObservation = {
   audioCount: 0,
@@ -76,9 +59,14 @@ describe("EBirdRepository", () => {
 
   describe("upsertLocation", () => {
     it("propagates renames and privacy changes on conflict", async () => {
-      await repository.upsertLocation(baseLocation);
+      const observationAtL100: TransformedEBirdObservation = {
+        ...baseObservation,
+        locId: "L100",
+        locName: "Old Name",
+      };
+      await repository.upsertLocation(observationAtL100);
       await repository.upsertLocation({
-        ...baseLocation,
+        ...observationAtL100,
         locationPrivate: true,
         locName: "New Name",
       });

@@ -16,12 +16,10 @@ describe("EBirdService", () => {
   };
 
   const transformerMock = {
-    extractLocation: jest.fn(),
     transformObservations: jest.fn(),
   };
 
   const repoMock = {
-    getAlertsCreatedSinceDate: jest.fn(),
     upsertLocation: jest.fn(),
     upsertObservation: jest.fn(),
   };
@@ -119,28 +117,11 @@ describe("EBirdService", () => {
   });
 
   it("writes a single observation to both location and observation tables", async () => {
-    const location = {
-      countryCode: "US",
-      countryName: "United States",
-      lat: 47.6062,
-      lng: -122.3321,
-      locationPrivate: false,
-      locId: "loc-1",
-      locName: "Lake Union",
-      subnational1Code: "US-WA",
-      subnational1Name: "Washington",
-      subnational2Code: "US-WA-033",
-      subnational2Name: "King",
-    };
-
-    transformerMock.extractLocation.mockReturnValue(location);
-
     await service.ingestObservation(transformedObservation);
 
-    expect(transformerMock.extractLocation).toHaveBeenCalledWith(
+    expect(repoMock.upsertLocation).toHaveBeenCalledWith(
       transformedObservation,
     );
-    expect(repoMock.upsertLocation).toHaveBeenCalledWith(location);
     expect(repoMock.upsertObservation).toHaveBeenCalledWith(
       transformedObservation,
     );
