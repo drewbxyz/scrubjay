@@ -51,8 +51,4 @@ export class EBirdService {
     await this.repo.upsertLocation(observation);
     await this.repo.upsertObservation(observation);
   }
-
-  async getObservationsSinceCreatedDate(since: Date) {
-    return this.repo.getAlertsCreatedSinceDate(since);
-  }
 }

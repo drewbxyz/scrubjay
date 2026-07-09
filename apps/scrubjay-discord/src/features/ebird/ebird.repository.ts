@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { gt } from "drizzle-orm";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 import type { TransformedEBirdObservation } from "./ebird.schema";
@@ -77,11 +76,5 @@ export class EBirdRepository {
         target: [observations.speciesCode, observations.subId],
       })
       .returning();
-  }
-
-  async getAlertsCreatedSinceDate(since: Date) {
-    return this.drizzle.db.query.observations.findMany({
-      where: gt(observations.createdAt, since),
-    });
   }
 }

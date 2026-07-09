@@ -20,7 +20,6 @@ describe("EBirdService", () => {
   };
 
   const repoMock = {
-    getAlertsCreatedSinceDate: jest.fn(),
     upsertLocation: jest.fn(),
     upsertObservation: jest.fn(),
   };
