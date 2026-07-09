@@ -33,10 +33,6 @@ export const RawEBirdObservationSchema = z.object({
 
 export type EBirdObservation = z.infer<typeof RawEBirdObservationSchema>;
 
-export type EBirdObservationResponse = z.infer<
-  typeof RawEBirdObservationSchema
->;
-
 export interface EBirdMediaCounts {
   photoCount: number;
   audioCount: number;
@@ -45,18 +41,3 @@ export interface EBirdMediaCounts {
 
 export type TransformedEBirdObservation = Omit<EBirdObservation, "evidence"> &
   EBirdMediaCounts;
-
-export type EBirdLocation = Pick<
-  EBirdObservation,
-  | "locId"
-  | "locName"
-  | "countryCode"
-  | "countryName"
-  | "subnational1Code"
-  | "subnational1Name"
-  | "subnational2Code"
-  | "subnational2Name"
-  | "locationPrivate"
-  | "lat"
-  | "lng"
->;

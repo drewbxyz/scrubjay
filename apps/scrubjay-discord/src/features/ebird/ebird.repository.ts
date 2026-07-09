@@ -2,16 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { gt } from "drizzle-orm";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
-import type {
-  EBirdLocation,
-  TransformedEBirdObservation,
-} from "./ebird.schema";
+import type { TransformedEBirdObservation } from "./ebird.schema";
 
 @Injectable()
 export class EBirdRepository {
   constructor(private readonly drizzle: DrizzleService) {}
 
-  async upsertLocation(data: EBirdLocation) {
+  async upsertLocation(data: TransformedEBirdObservation) {
     return this.drizzle.db
       .insert(locations)
       .values({

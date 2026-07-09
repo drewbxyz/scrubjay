@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import type {
-  EBirdLocation,
   EBirdObservation,
   TransformedEBirdObservation,
 } from "./ebird.schema";
@@ -46,23 +45,5 @@ export class EBirdTransformer {
       return acc;
     }, new Map<string, TransformedEBirdObservation>());
     return Array.from(reduced.values());
-  }
-
-  extractLocation(
-    observation: EBirdObservation | TransformedEBirdObservation,
-  ): EBirdLocation {
-    return {
-      countryCode: observation.countryCode,
-      countryName: observation.countryName,
-      lat: observation.lat,
-      lng: observation.lng,
-      locationPrivate: observation.locationPrivate,
-      locId: observation.locId,
-      locName: observation.locName,
-      subnational1Code: observation.subnational1Code,
-      subnational1Name: observation.subnational1Name,
-      subnational2Code: observation.subnational2Code,
-      subnational2Name: observation.subnational2Name,
-    };
   }
 }
