@@ -23,12 +23,17 @@ export class SubscriptionsService {
     throw new InvalidRegionError(regionCode);
   }
 
-  async subscribeToEBird(channelId: string, regionCode: string) {
+  async subscribe(channelId: string, regionCode: string): Promise<boolean> {
     const { countyCode, stateCode } = this.parseRegionCode(regionCode);
-    await this.repo.insertEBirdSubscription({
-      channelId,
-      countyCode,
-      stateCode,
-    });
+    return this.repo.insertSubscription({ channelId, stateCode, countyCode });
+  }
+
+  async unsubscribe(channelId: string, regionCode: string): Promise<boolean> {
+    const { countyCode, stateCode } = this.parseRegionCode(regionCode);
+    return this.repo.deleteSubscription({ channelId, stateCode, countyCode });
+  }
+
+  async listSubscriptions(channelId: string) {
+    return this.repo.subscriptionsForChannel(channelId);
   }
 }

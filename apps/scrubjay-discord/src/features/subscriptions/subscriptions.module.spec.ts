@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from "@nestjs/testing";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
+import { AlertQueue } from "../dispatch/alert-queue.service";
 import { SubscriptionsRepository } from "./subscriptions.repository";
 import { SubscriptionsService } from "./subscriptions.service";
 
@@ -13,6 +14,10 @@ describe("SubscriptionsModule", () => {
     },
   } as unknown as DrizzleService;
 
+  const mockAlertQueue = {
+    backfillEBird: jest.fn(),
+  } as unknown as AlertQueue;
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       exports: [SubscriptionsService],
@@ -20,6 +25,10 @@ describe("SubscriptionsModule", () => {
         {
           provide: DrizzleService,
           useValue: mockDrizzleService,
+        },
+        {
+          provide: AlertQueue,
+          useValue: mockAlertQueue,
         },
         SubscriptionsRepository,
         SubscriptionsService,

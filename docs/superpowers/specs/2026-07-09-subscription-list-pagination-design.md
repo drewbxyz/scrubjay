@@ -43,8 +43,7 @@ subscription-list.view.ts    buildSubscriptionListView(subs, page): InteractionR
                                embed + select row + button row. Pure.
 subscriptions.commands.ts    onSubscriptionList (slash) + @Button nav + @StringSelect remove.
                              All four handlers just call the view builder.
-subscriptions.service.ts     listSubscriptions(channelId) returns rows;
-                             removeSubscription(channelId, stateCode, countyCode).
+subscriptions.service.ts     listSubscriptions(channelId) returns rows.
 ```
 
 The three interactive handlers are thin: resolve `page`, hit the service, and (for
@@ -52,11 +51,12 @@ remove) delete then re-render. All layout logic lives in the one pure function.
 
 ## Removal wiring
 
-- The select-option `value` is the row's exact keys, `"${stateCode}:${countyCode}"` —
-  not a region string. The remove handler splits it and deletes by exact key.
-- A new `service.removeSubscription(channelId, stateCode, countyCode)` wraps the
-  existing `repo.deleteSubscription`, so removal never round-trips through
-  `parseRegionCode`.
+- The region code is recoverable from a row — the county code for a county sub, or
+  the state code when the county is `*` — so the select-option `value` carries that
+  region code directly.
+- The remove handler feeds the value straight back into the existing
+  `service.unsubscribe(channelId, regionCode)`; no new service method and no exact-key
+  variant are needed.
 
 ## Edge cases
 
@@ -75,5 +75,6 @@ remove) delete then re-render. All layout logic lives in the one pure function.
 
 - Unit-test `buildSubscriptionListView` directly (pure): pagination slicing, page
   clamping, empty state, select-option values, disabled Prev/Next at bounds.
-- Service-level tests for `listSubscriptions` ordering and `removeSubscription`
-  existed-or-not return.
+- Service test for `listSubscriptions` delegating to the repository.
+- Command tests for the list/nav/remove handlers (ephemeral reply, in-place
+  re-render, defer-then-unsubscribe ordering).
