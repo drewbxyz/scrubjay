@@ -12,10 +12,10 @@ import {
   createCommandGroupDecorator,
   Options,
   SelectedStrings,
+  type SlashCommandContext,
   StringSelect,
   type StringSelectContext,
   Subcommand,
-  type SlashCommandContext,
 } from "necord";
 import { CommandExceptionFilter } from "@/discord/common/filters/command-exception.filter";
 import { SubscribeEBirdOptions } from "./options/subscribe-ebird.options";
@@ -23,10 +23,10 @@ import { buildSubscriptionListView } from "./subscription-list.view";
 import { SubscriptionsService } from "./subscriptions.service";
 
 const SubscriptionCommand = createCommandGroupDecorator({
-  name: "subscription",
-  description: "Manage ScrubJay subscriptions for a channel",
-  defaultMemberPermissions: [PermissionFlagsBits.Administrator],
   contexts: [InteractionContextType.Guild],
+  defaultMemberPermissions: [PermissionFlagsBits.Administrator],
+  description: "Manage ScrubJay subscriptions for a channel",
+  name: "subscription",
 });
 
 @Injectable()
@@ -36,8 +36,8 @@ export class SubscriptionsCommands {
   constructor(private readonly subscriptions: SubscriptionsService) {}
 
   @Subcommand({
-    name: "add",
     description: "Add a ScrubJay subscription to the channel",
+    name: "add",
   })
   public async onSubscriptionAdd(
     @Context() [interaction]: SlashCommandContext,
@@ -61,8 +61,8 @@ export class SubscriptionsCommands {
   }
 
   @Subcommand({
-    name: "remove",
     description: "Remove a ScrubJay subcription from the channel",
+    name: "remove",
   })
   public async onSubscriptionRemove(
     @Context() [interaction]: SlashCommandContext,
@@ -85,8 +85,8 @@ export class SubscriptionsCommands {
   }
 
   @Subcommand({
-    name: "list",
     description: "List active ScrubJay subscriptions for the channel",
+    name: "list",
   })
   public async onSubscriptionList(
     @Context() [interaction]: SlashCommandContext,

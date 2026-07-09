@@ -10,7 +10,9 @@ describe("SubscriptionsRepository", () => {
   // insert chain: tx.insert().values().onConflictDoNothing().returning()
   const insertReturning = jest.fn();
   const insertOnConflict = jest.fn(() => ({ returning: insertReturning }));
-  const insertValues = jest.fn(() => ({ onConflictDoNothing: insertOnConflict }));
+  const insertValues = jest.fn(() => ({
+    onConflictDoNothing: insertOnConflict,
+  }));
   const tx = { insert: jest.fn(() => ({ values: insertValues })) };
 
   // delete chain: db.delete().where().returning()
@@ -24,9 +26,9 @@ describe("SubscriptionsRepository", () => {
 
   const drizzleMock = {
     db: {
-      transaction: jest.fn(async (cb) => cb(tx)),
       delete: jest.fn(() => ({ where: deleteWhere })),
       select: jest.fn(() => ({ from: selectFrom })),
+      transaction: jest.fn(async (cb) => cb(tx)),
     },
   } as unknown as DrizzleService;
 

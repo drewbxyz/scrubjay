@@ -7,7 +7,7 @@ import {
   locations,
   observations,
 } from "@/core/drizzle/drizzle.schema";
-import { DrizzleService, type DbOrTx } from "@/core/drizzle/drizzle.service";
+import { type DbOrTx, DrizzleService } from "@/core/drizzle/drizzle.service";
 
 const CONFIRMED_WINDOW_DAYS = 7;
 

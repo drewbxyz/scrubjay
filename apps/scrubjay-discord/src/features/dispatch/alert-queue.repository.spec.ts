@@ -80,8 +80,8 @@ describe("AlertQueueRepository", () => {
   describe("backfillDeliveries", () => {
     const scope = {
       channelId: "CH1",
-      stateCode: "US-CA",
       countyCode: "US-CA-085",
+      stateCode: "US-CA",
     };
 
     it("records every currently-pending alert as delivered without sending", async () => {

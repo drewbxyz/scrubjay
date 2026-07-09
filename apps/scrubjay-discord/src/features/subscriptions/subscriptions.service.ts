@@ -25,12 +25,12 @@ export class SubscriptionsService {
 
   async subscribe(channelId: string, regionCode: string): Promise<boolean> {
     const { countyCode, stateCode } = this.parseRegionCode(regionCode);
-    return this.repo.insertSubscription({ channelId, stateCode, countyCode });
+    return this.repo.insertSubscription({ channelId, countyCode, stateCode });
   }
 
   async unsubscribe(channelId: string, regionCode: string): Promise<boolean> {
     const { countyCode, stateCode } = this.parseRegionCode(regionCode);
-    return this.repo.deleteSubscription({ channelId, stateCode, countyCode });
+    return this.repo.deleteSubscription({ channelId, countyCode, stateCode });
   }
 
   async listSubscriptions(channelId: string) {

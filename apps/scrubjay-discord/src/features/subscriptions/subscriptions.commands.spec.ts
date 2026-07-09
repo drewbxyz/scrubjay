@@ -1,5 +1,9 @@
 import { MessageFlags } from "discord.js";
-import type { ButtonContext, SlashCommandContext, StringSelectContext } from "necord";
+import type {
+  ButtonContext,
+  SlashCommandContext,
+  StringSelectContext,
+} from "necord";
 import type { SubscribeEBirdOptions } from "./options/subscribe-ebird.options";
 import { SubscriptionsCommands } from "./subscriptions.commands";
 import type { SubscriptionsService } from "./subscriptions.service";
@@ -8,9 +12,9 @@ describe("SubscriptionsCommands", () => {
   let commands: SubscriptionsCommands;
 
   const serviceMock = {
+    listSubscriptions: jest.fn(),
     subscribe: jest.fn(),
     unsubscribe: jest.fn(),
-    listSubscriptions: jest.fn(),
   };
   const interaction = {
     channelId: "CH1",
@@ -85,11 +89,13 @@ describe("SubscriptionsCommands", () => {
 
   describe("onSubscriptionList", () => {
     const list = () =>
-      commands.onSubscriptionList([interaction] as unknown as SlashCommandContext);
+      commands.onSubscriptionList([
+        interaction,
+      ] as unknown as SlashCommandContext);
 
     it("replies ephemerally with the first page for the channel", async () => {
       serviceMock.listSubscriptions.mockResolvedValue([
-        { stateCode: "US-WA", countyCode: "US-WA-033" },
+        { countyCode: "US-WA-033", stateCode: "US-WA" },
       ]);
 
       await list();
@@ -115,8 +121,8 @@ describe("SubscriptionsCommands", () => {
   describe("onSubscriptionListNav", () => {
     it("re-renders the requested page in place", async () => {
       const subs = Array.from({ length: 15 }, (_, i) => ({
-        stateCode: "US-WA",
         countyCode: `US-WA-${String(i).padStart(3, "0")}`,
+        stateCode: "US-WA",
       }));
       serviceMock.listSubscriptions.mockResolvedValue(subs);
 

@@ -53,13 +53,13 @@ export function buildSubscriptionListView(
 ): SubscriptionListView {
   if (subs.length === 0) {
     return {
+      components: [],
       embeds: [
         new EmbedBuilder()
           .setColor(EMBED_COLOR)
           .setTitle("Active subscriptions")
           .setDescription("No subscriptions in this channel."),
       ],
-      components: [],
     };
   }
 
@@ -71,7 +71,9 @@ export function buildSubscriptionListView(
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLOR)
     .setTitle("Active subscriptions")
-    .setDescription(pageSubs.map((s) => `• ${subscriptionDisplay(s)}`).join("\n"))
+    .setDescription(
+      pageSubs.map((s) => `• ${subscriptionDisplay(s)}`).join("\n"),
+    )
     .setFooter({
       text:
         totalPages > 1
@@ -89,9 +91,8 @@ export function buildSubscriptionListView(
       })),
     );
 
-  const components: NonNullable<SubscriptionListView["components"]>[number][] = [
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu),
-  ];
+  const components: NonNullable<SubscriptionListView["components"]>[number][] =
+    [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu)];
 
   // Only paginate when there's more than one page: a lone page needs no nav,
   // and two clamped buttons would otherwise share a custom_id (Discord rejects
@@ -114,5 +115,5 @@ export function buildSubscriptionListView(
     );
   }
 
-  return { embeds: [embed], components };
+  return { components, embeds: [embed] };
 }

@@ -10,11 +10,11 @@ import {
 
 function countySub(countyCode: string): SubscriptionRow {
   const stateCode = countyCode.split("-").slice(0, 2).join("-");
-  return { stateCode, countyCode };
+  return { countyCode, stateCode };
 }
 
 function stateSub(stateCode: string): SubscriptionRow {
-  return { stateCode, countyCode: "*" };
+  return { countyCode: "*", stateCode };
 }
 
 function manyCountySubs(count: number): SubscriptionRow[] {
@@ -28,8 +28,9 @@ type JSONEncodable<T> = { toJSON(): T };
 function rowComponents(
   view: ReturnType<typeof buildSubscriptionListView>,
 ): Array<{ type: number }> {
-  const rows = (view.components ??
-    []) as unknown as JSONEncodable<{ components: Array<{ type: number }> }>[];
+  const rows = (view.components ?? []) as unknown as JSONEncodable<{
+    components: Array<{ type: number }>;
+  }>[];
   return rows.flatMap((row) => row.toJSON().components);
 }
 
@@ -52,8 +53,9 @@ function buttons(
 function embedDescription(
   view: ReturnType<typeof buildSubscriptionListView>,
 ): string {
-  const embed = (view.embeds ??
-    [])[0] as unknown as JSONEncodable<{ description?: string }>;
+  const embed = (view.embeds ?? [])[0] as unknown as JSONEncodable<{
+    description?: string;
+  }>;
   return embed.toJSON().description ?? "";
 }
 

@@ -6,8 +6,8 @@ describe("SubscriptionsService", () => {
   let service: SubscriptionsService;
 
   const repoMock = {
-    insertSubscription: jest.fn(),
     deleteSubscription: jest.fn(),
+    insertSubscription: jest.fn(),
     subscriptionsForChannel: jest.fn(),
   };
 
@@ -144,7 +144,7 @@ describe("SubscriptionsService", () => {
 
   describe("listSubscriptions", () => {
     it("returns the channel's rows from the repository", async () => {
-      const rows = [{ stateCode: "US-MA", countyCode: "US-MA-017" }];
+      const rows = [{ countyCode: "US-MA-017", stateCode: "US-MA" }];
       repoMock.subscriptionsForChannel.mockResolvedValue(rows);
 
       const result = await service.listSubscriptions("channel-123");
@@ -155,5 +155,4 @@ describe("SubscriptionsService", () => {
       );
     });
   });
-
 });
