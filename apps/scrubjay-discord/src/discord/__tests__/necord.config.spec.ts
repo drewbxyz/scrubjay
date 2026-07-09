@@ -1,4 +1,4 @@
-import { createNecordOptions } from "../necord-options";
+import { createNecordOptions } from "../necord.config";
 
 describe("createNecordOptions", () => {
   it("registers commands to the development guild when the id is set", () => {

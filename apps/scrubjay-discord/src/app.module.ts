@@ -8,7 +8,7 @@ import { JobsModule } from "@/features/jobs/jobs.module";
 import { SubscriptionsModule } from "@/features/subscriptions/subscriptions.module";
 import { DrizzleModule } from "./core/drizzle/drizzle.module";
 import { DiscordModule } from "./discord/discord.module";
-import { createNecordOptions } from "./discord/necord-options";
+import { createNecordOptions } from "./discord/necord.config";
 
 @Module({
   imports: [
