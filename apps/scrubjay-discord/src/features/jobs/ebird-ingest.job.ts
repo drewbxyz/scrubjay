@@ -16,20 +16,24 @@ export class EBirdIngestJob {
 
   @Cron("*/15 * * * *")
   async run() {
-    // Wait for bootstrap to complete before running
-    await this.bootstrapService.waitForBootstrap();
+    try {
+      // Wait for bootstrap to complete before running
+      await this.bootstrapService.waitForBootstrap();
 
-    this.logger.debug("Starting eBird ingestion job...");
+      this.logger.debug("Starting eBird ingestion job...");
 
-    const regions = await this.sources.getEBirdSources();
+      const regions = await this.sources.getEBirdSources();
 
-    for (const region of regions) {
-      try {
-        const inserted = await this.ebird.ingestRegion(region);
-        this.logger.log(`Region ${region}: ${inserted} alerts ingested`);
-      } catch (err) {
-        this.logger.error(`Failed to ingest ${region}: ${err}`);
+      for (const region of regions) {
+        try {
+          const inserted = await this.ebird.ingestRegion(region);
+          this.logger.log(`Region ${region}: ${inserted} alerts ingested`);
+        } catch (err) {
+          this.logger.error(`Failed to ingest ${region}: ${err}`);
+        }
       }
+    } catch (err) {
+      this.logger.error(`Ingest tick failed: ${err}`);
     }
   }
 }
