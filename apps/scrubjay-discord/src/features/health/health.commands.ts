@@ -1,11 +1,11 @@
 import { Injectable, Logger, UseFilters } from "@nestjs/common";
 import { Context, SlashCommand, type SlashCommandContext } from "necord";
-import { CommandExceptionFilter } from "./common/filters/command-exception.filter";
+import { CommandExceptionFilter } from "@/discord/common/filters/command-exception.filter";
 
 @Injectable()
 @UseFilters(CommandExceptionFilter)
-export class UtilCommands {
-  private readonly logger = new Logger(UtilCommands.name);
+export class HealthCommands {
+  private readonly logger = new Logger(HealthCommands.name);
 
   @SlashCommand({
     description: "Responds with latency",

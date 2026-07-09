@@ -4,6 +4,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { NecordModule } from "necord";
 import { type AppConfig, validateConfig } from "@/core/config/config.schema";
 import { FiltersModule } from "@/features/filters/filters.module";
+import { HealthModule } from "@/features/health/health.module";
 import { JobsModule } from "@/features/jobs/jobs.module";
 import { SubscriptionsModule } from "@/features/subscriptions/subscriptions.module";
 import { DrizzleModule } from "./core/drizzle/drizzle.module";
@@ -31,6 +32,7 @@ import { createNecordOptions } from "./discord/necord.config";
     }),
     DiscordModule,
     FiltersModule,
+    HealthModule,
     SubscriptionsModule,
     JobsModule,
   ],
