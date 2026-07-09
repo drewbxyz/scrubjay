@@ -1,8 +1,11 @@
 import { sql } from "drizzle-orm";
 import type { Pool } from "pg";
+import { deliveries } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
   createTestDb,
+  seedDelivery,
+  seedFilter,
   seedLocation,
   seedObservation,
   seedSubscription,
@@ -71,6 +74,64 @@ describe("AlertQueueRepository", () => {
       expect(plan).toMatch(
         /Anti Join[^\n]*\n\s*\S+ Cond:[^\n]*deliveries\.alert_id/,
       );
+    });
+  });
+
+  describe("backfillDeliveries", () => {
+    const scope = {
+      channelId: "CH1",
+      stateCode: "US-CA",
+      countyCode: "US-CA-085",
+    };
+
+    it("records every currently-pending alert as delivered without sending", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedObservation(db, { subId: "S001" });
+      await seedObservation(db, { subId: "S002" });
+
+      await repository.backfillDeliveries(scope);
+
+      // Nothing is left pending — the historical alerts are marked, not sent.
+      expect(await repository.pendingEBirdAlerts()).toHaveLength(0);
+      const rows = await db.db.select().from(deliveries);
+      expect(rows.map((r) => r.alertId).sort()).toEqual([
+        "verfly:S001",
+        "verfly:S002",
+      ]);
+      expect(rows.every((r) => r.kind === "ebird")).toBe(true);
+    });
+
+    it("backfills only the given Subscription, leaving others pending", async () => {
+      await seedLocation(db);
+      await seedSubscription(db); // CH1, county-specific
+      await seedSubscription(db, { channelId: "CH2", countyCode: "*" });
+      await seedObservation(db, { subId: "S001" });
+
+      await repository.backfillDeliveries(scope); // CH1 only
+
+      const stillPending = await repository.pendingEBirdAlerts();
+      expect(stillPending.map((a) => a.channelId)).toEqual(["CH2"]);
+    });
+
+    it("skips filtered species and already-delivered alerts", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedFilter(db, { commonName: "Vermilion Flycatcher" });
+      await seedObservation(db, { subId: "S001" }); // filtered
+      await seedObservation(db, {
+        comName: "Snowy Plover",
+        speciesCode: "snoplo5",
+        subId: "S002",
+      });
+      await seedDelivery(db, { alertId: "snoplo5:S002" }); // already delivered
+
+      await repository.backfillDeliveries(scope);
+
+      // Filtered species never becomes a delivery; the pre-existing delivery
+      // is not duplicated (onConflictDoNothing).
+      const rows = await db.db.select().from(deliveries);
+      expect(rows.map((r) => r.alertId)).toEqual(["snoplo5:S002"]);
     });
   });
 });

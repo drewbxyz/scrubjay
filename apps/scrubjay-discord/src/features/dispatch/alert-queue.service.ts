@@ -1,12 +1,14 @@
 import { Injectable } from "@nestjs/common";
+import type { DbOrTx } from "@/core/drizzle/drizzle.service";
 import {
   AlertQueueRepository,
   type PendingEBirdAlert,
+  type SubscriptionScope,
 } from "./alert-queue.repository";
 
 const MARK_SENT_BATCH_SIZE = 100;
 
-export type { PendingEBirdAlert };
+export type { PendingEBirdAlert, SubscriptionScope };
 
 export type SentAlert = {
   speciesCode: string;
@@ -41,5 +43,16 @@ export class AlertQueue {
       }));
       await this.repository.insertDeliveries(batch);
     }
+  }
+
+  /**
+   * Mark every currently-pending alert for one Subscription as delivered
+   * without sending it — the subscribe-time backfill. Pass `db` (a transaction
+   * handle) to compose this atomically with the subscription insert, otherwise
+   * a dispatch tick landing in between would see the new Subscription but not
+   * yet its backfill, and actually send the historical alerts.
+   */
+  async backfillEBird(scope: SubscriptionScope, db?: DbOrTx): Promise<void> {
+    await this.repository.backfillDeliveries(scope, db);
   }
 }
