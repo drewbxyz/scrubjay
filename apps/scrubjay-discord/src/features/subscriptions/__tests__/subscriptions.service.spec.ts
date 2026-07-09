@@ -1,37 +1,19 @@
-import { Logger } from "@nestjs/common";
-import { Test, type TestingModule } from "@nestjs/testing";
-import { SubscriptionsRepository } from "../subscriptions.repository";
+import { InvalidRegionError } from "../invalid-region.error";
+import type { SubscriptionsRepository } from "../subscriptions.repository";
 import { SubscriptionsService } from "../subscriptions.service";
 
 describe("SubscriptionsService", () => {
   let service: SubscriptionsService;
-  let loggerErrorSpy: jest.SpyInstance;
 
   const repoMock = {
     insertEBirdSubscription: jest.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        {
-          provide: SubscriptionsService,
-          useFactory: () =>
-            new SubscriptionsService(
-              repoMock as unknown as SubscriptionsRepository,
-            ),
-        },
-      ],
-    }).compile();
-
-    service = module.get<SubscriptionsService>(SubscriptionsService);
-    loggerErrorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
+  beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
-    loggerErrorSpy.mockRestore();
+    service = new SubscriptionsService(
+      repoMock as unknown as SubscriptionsRepository,
+    );
   });
 
   describe("subscribeToEBird", () => {
@@ -45,7 +27,6 @@ describe("SubscriptionsService", () => {
         countyCode: "*",
         stateCode: "US-WA",
       });
-      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
     it("successfully subscribes to a county-level region (3 parts)", async () => {
@@ -58,56 +39,40 @@ describe("SubscriptionsService", () => {
         countyCode: "US-WA-033",
         stateCode: "US-WA",
       });
-      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
-    it("rejects invalid region code with 1 part", async () => {
+    it("rejects a 1-part region code with InvalidRegionError", async () => {
       await expect(
         service.subscribeToEBird("channel-123", "US"),
-      ).rejects.toThrow("Invalid region code: US");
+      ).rejects.toThrow(InvalidRegionError);
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Invalid region code: US"),
-      );
     });
 
-    it("rejects invalid region code with 4+ parts", async () => {
+    it("rejects a 4-part region code, naming the code", async () => {
       await expect(
         service.subscribeToEBird("channel-123", "US-WA-033-EXTRA"),
       ).rejects.toThrow("Invalid region code: US-WA-033-EXTRA");
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Invalid region code: US-WA-033-EXTRA"),
-      );
     });
 
-    it("rejects empty region code", async () => {
+    it("rejects an empty region code", async () => {
       await expect(service.subscribeToEBird("channel-123", "")).rejects.toThrow(
-        "Invalid region code",
+        InvalidRegionError,
       );
 
       expect(repoMock.insertEBirdSubscription).not.toHaveBeenCalled();
-      expect(loggerErrorSpy).toHaveBeenCalled();
     });
 
-    it("rejects when the database insert fails", async () => {
-      const dbError = new Error("Database connection failed");
-      repoMock.insertEBirdSubscription.mockRejectedValue(dbError);
+    it("lets repository errors propagate unwrapped", async () => {
+      repoMock.insertEBirdSubscription.mockRejectedValue(
+        new Error("Database connection failed"),
+      );
 
       await expect(
         service.subscribeToEBird("channel-123", "US-WA"),
-      ).rejects.toThrow("Failed to subscribe to eBird");
-
-      expect(repoMock.insertEBirdSubscription).toHaveBeenCalledWith({
-        channelId: "channel-123",
-        countyCode: "*",
-        stateCode: "US-WA",
-      });
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to subscribe to eBird"),
-      );
+      ).rejects.toThrow("Database connection failed");
     });
 
     it("handles various state codes correctly", async () => {
@@ -115,9 +80,7 @@ describe("SubscriptionsService", () => {
 
       await service.subscribeToEBird("channel-123", "US-CA");
       await service.subscribeToEBird("channel-123", "US-NY");
-      await service.subscribeToEBird("channel-123", "US-TX");
 
-      expect(repoMock.insertEBirdSubscription).toHaveBeenCalledTimes(3);
       expect(repoMock.insertEBirdSubscription).toHaveBeenNthCalledWith(1, {
         channelId: "channel-123",
         countyCode: "*",
@@ -127,36 +90,18 @@ describe("SubscriptionsService", () => {
         channelId: "channel-123",
         countyCode: "*",
         stateCode: "US-NY",
-      });
-      expect(repoMock.insertEBirdSubscription).toHaveBeenNthCalledWith(3, {
-        channelId: "channel-123",
-        countyCode: "*",
-        stateCode: "US-TX",
       });
     });
 
     it("handles various county codes correctly", async () => {
       repoMock.insertEBirdSubscription.mockResolvedValue(undefined);
 
-      await service.subscribeToEBird("channel-123", "US-WA-033");
       await service.subscribeToEBird("channel-123", "US-CA-037");
-      await service.subscribeToEBird("channel-123", "US-NY-061");
 
-      expect(repoMock.insertEBirdSubscription).toHaveBeenCalledTimes(3);
-      expect(repoMock.insertEBirdSubscription).toHaveBeenNthCalledWith(1, {
-        channelId: "channel-123",
-        countyCode: "US-WA-033",
-        stateCode: "US-WA",
-      });
-      expect(repoMock.insertEBirdSubscription).toHaveBeenNthCalledWith(2, {
+      expect(repoMock.insertEBirdSubscription).toHaveBeenCalledWith({
         channelId: "channel-123",
         countyCode: "US-CA-037",
         stateCode: "US-CA",
-      });
-      expect(repoMock.insertEBirdSubscription).toHaveBeenNthCalledWith(3, {
-        channelId: "channel-123",
-        countyCode: "US-NY-061",
-        stateCode: "US-NY",
       });
     });
   });

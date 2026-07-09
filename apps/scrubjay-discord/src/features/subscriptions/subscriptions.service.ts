@@ -1,9 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { InvalidRegionError } from "./invalid-region.error";
 import { SubscriptionsRepository } from "./subscriptions.repository";
 
 @Injectable()
 export class SubscriptionsService {
-  private readonly logger = new Logger(SubscriptionsService.name);
   constructor(private readonly repo: SubscriptionsRepository) {}
 
   private parseRegionCode(regionCode: string) {
@@ -13,35 +13,22 @@ export class SubscriptionsService {
         countyCode: "*",
         stateCode: regionCode,
       };
-    } else if (parts.length === 3) {
+    }
+    if (parts.length === 3) {
       return {
         countyCode: regionCode,
         stateCode: `${parts[0]}-${parts[1]}`,
       };
     }
-    throw new Error(`Invalid region code: ${regionCode}`);
+    throw new InvalidRegionError(regionCode);
   }
 
   async subscribeToEBird(channelId: string, regionCode: string) {
-    let countyCode: string;
-    let stateCode: string;
-    try {
-      const parsed = this.parseRegionCode(regionCode);
-      countyCode = parsed.countyCode;
-      stateCode = parsed.stateCode;
-    } catch (err) {
-      this.logger.error(`Invalid region code: ${regionCode}: ${err}`);
-      throw new Error(`Invalid region code: ${regionCode}`);
-    }
-    try {
-      await this.repo.insertEBirdSubscription({
-        channelId,
-        countyCode,
-        stateCode,
-      });
-    } catch (err) {
-      this.logger.error(`Failed to subscribe to eBird: ${err}`);
-      throw new Error(`Failed to subscribe to eBird: ${err}`);
-    }
+    const { countyCode, stateCode } = this.parseRegionCode(regionCode);
+    await this.repo.insertEBirdSubscription({
+      channelId,
+      countyCode,
+      stateCode,
+    });
   }
 }
