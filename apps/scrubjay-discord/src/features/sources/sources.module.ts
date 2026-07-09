@@ -1,10 +1,9 @@
 import { Module } from "@nestjs/common";
 import { SourcesRepository } from "./sources.repository";
-import { SourcesService } from "./sources.service";
 
 @Module({
-  exports: [SourcesService],
+  exports: [SourcesRepository],
   imports: [],
-  providers: [SourcesService, SourcesRepository],
+  providers: [SourcesRepository],
 })
 export class SourcesModule {}

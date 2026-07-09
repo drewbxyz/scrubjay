@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import type { AlertQueue } from "@/features/dispatch/alert-queue";
 import type { EBirdService } from "@/features/ebird/ebird.service";
-import type { SourcesService } from "@/features/sources/sources.service";
+import type { SourcesRepository } from "@/features/sources/sources.repository";
 import { BootstrapService } from "../bootstrap.service";
 
 describe("BootstrapService", () => {
@@ -24,7 +24,7 @@ describe("BootstrapService", () => {
     service = new BootstrapService(
       ebirdServiceMock as unknown as EBirdService,
       alertQueueMock as unknown as AlertQueue,
-      sourcesMock as unknown as SourcesService,
+      sourcesMock as unknown as SourcesRepository,
     );
   });
 
