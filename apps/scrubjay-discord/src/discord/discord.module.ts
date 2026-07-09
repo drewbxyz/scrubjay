@@ -1,11 +1,11 @@
 import { Module } from "@nestjs/common";
-import { DiscordHelper } from "./discord.helper";
+import { ChannelSenderService } from "./channel-sender.service";
 import { ListenersModule } from "./listeners/listeners.module";
 import { UtilCommands } from "./util.commands";
 
 @Module({
-  exports: [DiscordHelper],
+  exports: [ChannelSenderService],
   imports: [ListenersModule],
-  providers: [DiscordHelper, UtilCommands],
+  providers: [ChannelSenderService, UtilCommands],
 })
 export class DiscordModule {}
