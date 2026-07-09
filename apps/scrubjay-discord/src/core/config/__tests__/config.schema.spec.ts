@@ -56,4 +56,25 @@ describe("validateConfig", () => {
     expect(config.DEVELOPMENT_GUILD_ID).toBe("guild-123");
     expect(config.DISCORD_CLIENT_ID).toBe("client-456");
   });
+
+  it("defaults FILTER_REACTION_THRESHOLD to 3", () => {
+    const config = validateConfig(validEnv);
+
+    expect(config.FILTER_REACTION_THRESHOLD).toBe(3);
+  });
+
+  it("coerces FILTER_REACTION_THRESHOLD from string to number", () => {
+    const config = validateConfig({
+      ...validEnv,
+      FILTER_REACTION_THRESHOLD: "5",
+    });
+
+    expect(config.FILTER_REACTION_THRESHOLD).toBe(5);
+  });
+
+  it("rejects a FILTER_REACTION_THRESHOLD below 1", () => {
+    expect(() =>
+      validateConfig({ ...validEnv, FILTER_REACTION_THRESHOLD: "0" }),
+    ).toThrow("FILTER_REACTION_THRESHOLD");
+  });
 });
