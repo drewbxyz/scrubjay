@@ -10,8 +10,8 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import { AlertQueue } from "./alert-queue.service";
 import { AlertQueueRepository } from "./alert-queue.repository";
+import { AlertQueue } from "./alert-queue.service";
 
 describe("AlertQueue", () => {
   let db: DrizzleService;

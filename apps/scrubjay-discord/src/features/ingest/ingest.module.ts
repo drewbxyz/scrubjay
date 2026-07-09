@@ -7,6 +7,11 @@ import { ObservationRepository } from "./observation.repository";
 @Module({
   exports: [IngestService],
   imports: [],
-  providers: [EBirdFetcher, EBirdTransformer, IngestService, ObservationRepository],
+  providers: [
+    EBirdFetcher,
+    EBirdTransformer,
+    IngestService,
+    ObservationRepository,
+  ],
 })
 export class IngestModule {}
