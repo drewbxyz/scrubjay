@@ -1,5 +1,5 @@
-import type { EBirdObservation } from "../ebird.schema";
-import { EBirdTransformer } from "../ebird.transformer";
+import type { EBirdObservation } from "./ebird.schema";
+import { EBirdTransformer } from "./ebird.transformer";
 
 describe("EBirdTransformer", () => {
   const transformer = new EBirdTransformer();

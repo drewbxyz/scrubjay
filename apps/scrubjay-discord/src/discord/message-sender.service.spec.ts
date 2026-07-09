@@ -1,5 +1,5 @@
 import type { Client } from "discord.js";
-import { MessageSenderService } from "../message-sender.service";
+import { MessageSenderService } from "./message-sender.service";
 
 describe("MessageSenderService", () => {
   let sender: MessageSenderService;

@@ -1,7 +1,7 @@
 import type { SlashCommandContext } from "necord";
-import type { SubscribeEBirdOptions } from "../options/subscribe-ebird.options";
-import { SubscriptionsCommands } from "../subscriptions.commands";
-import type { SubscriptionsService } from "../subscriptions.service";
+import type { SubscribeEBirdOptions } from "./options/subscribe-ebird.options";
+import { SubscriptionsCommands } from "./subscriptions.commands";
+import type { SubscriptionsService } from "./subscriptions.service";
 
 describe("SubscriptionsCommands", () => {
   let commands: SubscriptionsCommands;

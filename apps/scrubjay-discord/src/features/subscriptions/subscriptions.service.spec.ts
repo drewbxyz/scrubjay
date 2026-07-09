@@ -1,6 +1,6 @@
-import { InvalidRegionError } from "../invalid-region.error";
-import type { SubscriptionsRepository } from "../subscriptions.repository";
-import { SubscriptionsService } from "../subscriptions.service";
+import { InvalidRegionError } from "./invalid-region.error";
+import type { SubscriptionsRepository } from "./subscriptions.repository";
+import { SubscriptionsService } from "./subscriptions.service";
 
 describe("SubscriptionsService", () => {
   let service: SubscriptionsService;

@@ -1,7 +1,7 @@
 import type { ArgumentsHost } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
-import { UserFacingError } from "../../errors/user-facing.error";
-import { CommandExceptionFilter } from "../command-exception.filter";
+import { UserFacingError } from "../errors/user-facing.error";
+import { CommandExceptionFilter } from "./command-exception.filter";
 
 describe("CommandExceptionFilter", () => {
   let filter: CommandExceptionFilter;

@@ -5,7 +5,7 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import { FiltersRepository } from "../filters.repository";
+import { FiltersRepository } from "./filters.repository";
 
 describe("FiltersRepository", () => {
   let db: DrizzleService;

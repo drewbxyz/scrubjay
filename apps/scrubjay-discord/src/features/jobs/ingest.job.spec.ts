@@ -1,8 +1,8 @@
 import { Logger } from "@nestjs/common";
 import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
-import type { BootstrapService } from "../bootstrap.service";
-import { IngestJob } from "../ingest.job";
+import type { BootstrapService } from "./bootstrap.service";
+import { IngestJob } from "./ingest.job";
 
 describe("IngestJob", () => {
   let job: IngestJob;

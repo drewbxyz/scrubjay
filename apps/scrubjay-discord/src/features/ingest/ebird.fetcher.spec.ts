@@ -1,8 +1,8 @@
 import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Test, type TestingModule } from "@nestjs/testing";
-import { EBirdFetcher } from "../ebird.fetcher";
-import type { EBirdObservation } from "../ebird.schema";
+import { EBirdFetcher } from "./ebird.fetcher";
+import type { EBirdObservation } from "./ebird.schema";
 
 const validObservation: EBirdObservation = {
   checklistId: "cl1",

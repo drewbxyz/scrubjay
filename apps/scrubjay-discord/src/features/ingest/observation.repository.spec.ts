@@ -3,8 +3,8 @@ import type { Pool } from "pg";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { createTestDb, truncateAll } from "@/testing/db-helpers";
-import type { Observation } from "../observation.interface";
-import { ObservationRepository } from "../observation.repository";
+import type { Observation } from "./observation.interface";
+import { ObservationRepository } from "./observation.repository";
 
 const baseObservation: Observation = {
   audioCount: 0,

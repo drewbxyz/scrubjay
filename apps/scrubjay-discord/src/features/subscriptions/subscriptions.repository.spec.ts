@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from "@nestjs/testing";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
-import { SubscriptionsRepository } from "../subscriptions.repository";
+import { SubscriptionsRepository } from "./subscriptions.repository";
 
 describe("SubscriptionsRepository", () => {
   let repository: SubscriptionsRepository;

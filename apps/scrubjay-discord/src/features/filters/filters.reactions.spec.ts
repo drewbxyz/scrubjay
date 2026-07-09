@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
-import { FiltersReactions } from "../filters.reactions";
-import type { FiltersRepository } from "../filters.repository";
+import { FiltersReactions } from "./filters.reactions";
+import type { FiltersRepository } from "./filters.repository";
 
 describe("FiltersReactions", () => {
   let reactions: FiltersReactions;

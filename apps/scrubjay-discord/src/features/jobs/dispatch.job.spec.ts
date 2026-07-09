@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import type { DispatchService } from "@/features/dispatch/dispatch.service";
-import type { BootstrapService } from "../bootstrap.service";
-import { DispatchJob } from "../dispatch.job";
+import type { BootstrapService } from "./bootstrap.service";
+import { DispatchJob } from "./dispatch.job";
 
 describe("DispatchJob", () => {
   let job: DispatchJob;

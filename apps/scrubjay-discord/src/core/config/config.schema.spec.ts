@@ -1,4 +1,4 @@
-import { validateConfig } from "../config.schema";
+import { validateConfig } from "./config.schema";
 
 const validEnv = {
   DATABASE_URL: "postgres://user:pass@localhost:5432/scrubjay",

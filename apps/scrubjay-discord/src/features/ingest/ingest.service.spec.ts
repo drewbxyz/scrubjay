@@ -1,11 +1,11 @@
 import { Logger } from "@nestjs/common";
 import { Test, type TestingModule } from "@nestjs/testing";
-import { EBirdFetcher } from "../ebird.fetcher";
-import type { EBirdObservation } from "../ebird.schema";
-import { EBirdTransformer } from "../ebird.transformer";
-import { IngestService } from "../ingest.service";
-import type { Observation } from "../observation.interface";
-import { ObservationRepository } from "../observation.repository";
+import { EBirdFetcher } from "./ebird.fetcher";
+import type { EBirdObservation } from "./ebird.schema";
+import { EBirdTransformer } from "./ebird.transformer";
+import { IngestService } from "./ingest.service";
+import type { Observation } from "./observation.interface";
+import { ObservationRepository } from "./observation.repository";
 
 describe("IngestService", () => {
   let service: IngestService;
