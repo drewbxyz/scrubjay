@@ -1,20 +1,20 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EBirdFetcher } from "./ebird.fetcher";
-import { EBirdRepository } from "./ebird.repository";
+import { EBirdTransformer } from "./ebird.transformer";
 import type {
   EBirdObservation,
   TransformedEBirdObservation,
 } from "./ebird.schema";
-import { EBirdTransformer } from "./ebird.transformer";
+import { ObservationRepository } from "./observation.repository";
 
 @Injectable()
-export class EBirdService {
-  private readonly logger = new Logger(EBirdService.name);
+export class IngestService {
+  private readonly logger = new Logger(IngestService.name);
 
   constructor(
     private readonly fetcher: EBirdFetcher,
     private readonly transformer: EBirdTransformer,
-    private readonly repo: EBirdRepository,
+    private readonly repo: ObservationRepository,
   ) {}
 
   async ingestRegion(regionCode: string) {

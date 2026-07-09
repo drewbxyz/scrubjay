@@ -1,6 +1,6 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { AlertQueue } from "@/features/dispatch/alert-queue.service";
-import { EBirdService } from "@/features/ebird/ebird.service";
+import { IngestService } from "@/features/ingest/ingest.service";
 import { SourcesRepository } from "@/features/sources/sources.repository";
 
 /**
@@ -15,7 +15,7 @@ export class BootstrapService implements OnModuleInit {
   private bootstrapPromise: Promise<void> | null = null;
 
   constructor(
-    private readonly ebirdService: EBirdService,
+    private readonly ingestService: IngestService,
     private readonly alertQueue: AlertQueue,
     private readonly sources: SourcesRepository,
   ) {}
@@ -65,7 +65,7 @@ export class BootstrapService implements OnModuleInit {
 
     for (const region of regions) {
       try {
-        const count = await this.ebirdService.ingestRegion(region);
+        const count = await this.ingestService.ingestRegion(region);
         this.logger.log(`Populated ${count} observations for ${region}`);
       } catch (err) {
         this.logger.error(`Population failed for ${region}: ${err}`);

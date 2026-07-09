@@ -4,7 +4,7 @@ import { DrizzleService } from "@/core/drizzle/drizzle.service";
 import type { TransformedEBirdObservation } from "./ebird.schema";
 
 @Injectable()
-export class EBirdRepository {
+export class ObservationRepository {
   constructor(private readonly drizzle: DrizzleService) {}
 
   async upsertLocation(data: TransformedEBirdObservation) {

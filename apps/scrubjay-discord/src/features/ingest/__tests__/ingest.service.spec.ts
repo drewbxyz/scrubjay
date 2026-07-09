@@ -1,15 +1,15 @@
 import { Test, type TestingModule } from "@nestjs/testing";
 import { EBirdFetcher } from "../ebird.fetcher";
-import { EBirdRepository } from "../ebird.repository";
+import { EBirdTransformer } from "../ebird.transformer";
 import type {
   EBirdObservation,
   TransformedEBirdObservation,
 } from "../ebird.schema";
-import { EBirdService } from "../ebird.service";
-import { EBirdTransformer } from "../ebird.transformer";
+import { IngestService } from "../ingest.service";
+import { ObservationRepository } from "../observation.repository";
 
-describe("EBirdService", () => {
-  let service: EBirdService;
+describe("IngestService", () => {
+  let service: IngestService;
 
   const fetcherMock = {
     fetchRareObservations: jest.fn(),
@@ -66,18 +66,18 @@ describe("EBirdService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
-          provide: EBirdService,
+          provide: IngestService,
           useFactory: () =>
-            new EBirdService(
+            new IngestService(
               fetcherMock as unknown as EBirdFetcher,
               transformerMock as unknown as EBirdTransformer,
-              repoMock as unknown as EBirdRepository,
+              repoMock as unknown as ObservationRepository,
             ),
         },
       ],
     }).compile();
 
-    service = module.get<EBirdService>(EBirdService);
+    service = module.get<IngestService>(IngestService);
     jest.clearAllMocks();
   });
 

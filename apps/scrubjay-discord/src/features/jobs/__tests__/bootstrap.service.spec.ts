@@ -1,6 +1,6 @@
 import { Logger } from "@nestjs/common";
 import type { AlertQueue } from "@/features/dispatch/alert-queue.service";
-import type { EBirdService } from "@/features/ebird/ebird.service";
+import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
 import { BootstrapService } from "../bootstrap.service";
 
@@ -22,7 +22,7 @@ describe("BootstrapService", () => {
     alertQueueMock.markSent.mockResolvedValue(undefined);
 
     service = new BootstrapService(
-      ebirdServiceMock as unknown as EBirdService,
+      ebirdServiceMock as unknown as IngestService,
       alertQueueMock as unknown as AlertQueue,
       sourcesMock as unknown as SourcesRepository,
     );

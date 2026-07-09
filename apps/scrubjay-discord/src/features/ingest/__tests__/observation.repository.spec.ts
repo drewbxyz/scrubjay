@@ -3,8 +3,8 @@ import type { Pool } from "pg";
 import { locations, observations } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { createTestDb, seedLocation, truncateAll } from "@/testing/db-helpers";
-import { EBirdRepository } from "../ebird.repository";
 import type { TransformedEBirdObservation } from "../ebird.schema";
+import { ObservationRepository } from "../observation.repository";
 
 const baseObservation: TransformedEBirdObservation = {
   audioCount: 0,
@@ -39,14 +39,14 @@ const baseObservation: TransformedEBirdObservation = {
   videoCount: 0,
 };
 
-describe("EBirdRepository", () => {
+describe("ObservationRepository", () => {
   let db: DrizzleService;
   let pool: Pool;
-  let repository: EBirdRepository;
+  let repository: ObservationRepository;
 
   beforeAll(() => {
     ({ db, pool } = createTestDb());
-    repository = new EBirdRepository(db);
+    repository = new ObservationRepository(db);
   });
 
   afterAll(async () => {

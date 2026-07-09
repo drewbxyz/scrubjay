@@ -1,11 +1,11 @@
 import { Logger } from "@nestjs/common";
-import type { EBirdService } from "@/features/ebird/ebird.service";
+import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
 import type { BootstrapService } from "../bootstrap.service";
-import { EBirdIngestJob } from "../ebird-ingest.job";
+import { IngestJob } from "../ingest.job";
 
-describe("EBirdIngestJob", () => {
-  let job: EBirdIngestJob;
+describe("IngestJob", () => {
+  let job: IngestJob;
   let loggerErrorSpy: jest.SpyInstance;
 
   const ebirdMock = { ingestRegion: jest.fn() };
@@ -25,8 +25,8 @@ describe("EBirdIngestJob", () => {
     bootstrapMock.waitForBootstrap.mockResolvedValue(undefined);
     sourcesMock.getEBirdSources.mockResolvedValue(["US-CA", "US-WA"]);
 
-    job = new EBirdIngestJob(
-      ebirdMock as unknown as EBirdService,
+    job = new IngestJob(
+      ebirdMock as unknown as IngestService,
       bootstrapMock as unknown as BootstrapService,
       sourcesMock as unknown as SourcesRepository,
     );
