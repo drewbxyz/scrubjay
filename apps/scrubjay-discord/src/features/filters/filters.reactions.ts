@@ -50,27 +50,29 @@ export class FiltersReactions {
 
     const message = reaction.message;
 
-    const filterable = await this.repo.isChannelFilterable(message.channelId);
-    if (!filterable) return;
-
-    const embed = message.embeds[0];
-    if (!embed || !embed.title) return;
-
-    const speciesCommonName = this.extractSpeciesNameFromTitle(embed.title);
-    if (!speciesCommonName) return;
-
     try {
+      const filterable = await this.repo.isChannelFilterable(message.channelId);
+      if (!filterable) return;
+
+      const embed = message.embeds[0];
+      if (!embed || !embed.title) return;
+
+      const speciesCommonName = this.extractSpeciesNameFromTitle(embed.title);
+      if (!speciesCommonName) return;
+
       await this.repo.addChannelFilter(message.channelId, speciesCommonName);
-    } catch (err) {
+
+      this.logger.log(
+        `Filter added: ${speciesCommonName} - ${message.channelId}`,
+      );
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
-        `Could not insert filter into database (${message.channelId}:${speciesCommonName}): ${err}`,
+        `Failed to process filter reaction: ${err.message}`,
+        err.stack,
       );
       return;
     }
-
-    this.logger.log(
-      `Filter added: ${speciesCommonName} - ${message.channelId}`,
-    );
   }
 
   private extractSpeciesNameFromTitle(title: string) {

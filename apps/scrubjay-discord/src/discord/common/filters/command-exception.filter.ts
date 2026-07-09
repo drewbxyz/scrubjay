@@ -25,10 +25,21 @@ export class CommandExceptionFilter implements ExceptionFilter {
     const content =
       error instanceof UserFacingError ? error.message : GENERIC_MESSAGE;
 
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply({ content });
-    } else {
-      await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content });
+      } else {
+        await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+      }
+    } catch (replyError) {
+      const err =
+        replyError instanceof Error
+          ? replyError
+          : new Error(String(replyError));
+      this.logger.error(
+        `Failed to send error reply: ${err.message}`,
+        err.stack,
+      );
     }
   }
 }

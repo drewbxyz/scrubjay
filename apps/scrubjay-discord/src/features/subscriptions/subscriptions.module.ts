@@ -4,7 +4,6 @@ import { SubscriptionsRepository } from "./subscriptions.repository";
 import { SubscriptionsService } from "./subscriptions.service";
 
 @Module({
-  exports: [SubscriptionsService],
   providers: [
     SubscriptionsCommands,
     SubscriptionsRepository,

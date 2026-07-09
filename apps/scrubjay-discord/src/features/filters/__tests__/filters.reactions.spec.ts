@@ -208,4 +208,13 @@ describe("FiltersReactions", () => {
 
     await expect(run(makeReaction())).resolves.toBeUndefined();
   });
+
+  it("swallows isChannelFilterable rejections without adding a filter", async () => {
+    repoMock.isChannelFilterable.mockRejectedValue(new Error("db down"));
+
+    await expect(run(makeReaction())).resolves.toBeUndefined();
+
+    expect(repoMock.addChannelFilter).not.toHaveBeenCalled();
+    expect(Logger.prototype.error).toHaveBeenCalled();
+  });
 });

@@ -75,4 +75,31 @@ describe("CommandExceptionFilter", () => {
       }),
     );
   });
+
+  it("uses editReply when the interaction was already replied (not deferred)", async () => {
+    interaction.replied = true;
+
+    await filter.catch(new Error("boom"), host);
+
+    expect(interaction.editReply).toHaveBeenCalledWith({
+      content: "Something went wrong running that command.",
+    });
+    expect(interaction.reply).not.toHaveBeenCalled();
+  });
+
+  it("swallows a rejection from editReply instead of throwing", async () => {
+    interaction.deferred = true;
+    (interaction.editReply as jest.Mock).mockRejectedValueOnce(
+      new Error("Unknown interaction"),
+    );
+
+    await expect(
+      filter.catch(new Error("boom"), host),
+    ).resolves.toBeUndefined();
+
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to send error reply"),
+      expect.anything(),
+    );
+  });
 });
