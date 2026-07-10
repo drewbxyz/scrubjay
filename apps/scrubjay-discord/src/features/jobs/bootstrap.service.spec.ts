@@ -54,25 +54,17 @@ describe("BootstrapService", () => {
 
     await expect(service.onModuleInit()).rejects.toThrow("db down");
 
-    // The flag must not be set — a failed bootstrap must not unblock dispatch.
-    vi.useFakeTimers();
-    const wait = service.waitForBootstrap();
-    const assertion = expect(wait).rejects.toThrow(
-      "Bootstrap timed out after 5 minutes",
-    );
-    vi.advanceTimersByTime(5 * 60 * 1000);
-    await assertion;
+    // A failed bootstrap must not unblock dispatch: waitForBootstrap returns
+    // the same rejected promise, surfacing the real error rather than resolving.
+    await expect(service.waitForBootstrap()).rejects.toThrow("db down");
   });
 
-  it("rejects waitForBootstrap with a descriptive timeout error (B7)", async () => {
-    vi.useFakeTimers();
+  it("kicks off bootstrap when waited on before onModuleInit", async () => {
+    const first = service.waitForBootstrap();
 
-    const wait = service.waitForBootstrap();
-    const assertion = expect(wait).rejects.toThrow(
-      "Bootstrap timed out after 5 minutes",
-    );
-    vi.advanceTimersByTime(5 * 60 * 1000);
-
-    await assertion;
+    // The same in-flight promise is reused, not a fresh bootstrap per call.
+    expect(service.waitForBootstrap()).toBe(first);
+    expect(service.onModuleInit()).toBe(first);
+    await expect(first).resolves.toBeUndefined();
   });
 });

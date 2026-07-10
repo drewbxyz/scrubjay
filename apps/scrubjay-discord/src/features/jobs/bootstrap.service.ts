@@ -11,7 +11,6 @@ import { SourcesRepository } from "@/features/sources/sources.repository";
 export class BootstrapService implements OnModuleInit {
   private readonly logger = new Logger(BootstrapService.name);
 
-  private bootstrapComplete = false;
   private bootstrapPromise: Promise<void> | null = null;
 
   constructor(
@@ -20,45 +19,23 @@ export class BootstrapService implements OnModuleInit {
     private readonly sources: SourcesRepository,
   ) {}
 
-  /**
-   * Wait for bootstrap to complete. Jobs should call this before running.
-   */
-  async waitForBootstrap(): Promise<void> {
-    if (this.bootstrapComplete) {
-      return;
-    }
-
-    if (this.bootstrapPromise) {
-      return this.bootstrapPromise;
-    }
-
-    // Wait up to 5 minutes for bootstrap to complete
-    this.bootstrapPromise = new Promise<void>((resolve, reject) => {
-      const checkInterval = setInterval(() => {
-        if (this.bootstrapComplete) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 100);
-
-      setTimeout(
-        () => {
-          clearInterval(checkInterval);
-          if (!this.bootstrapComplete) {
-            this.logger.warn(
-              "Bootstrap did not complete within timeout, rejecting attempt",
-            );
-          }
-          reject(new Error("Bootstrap timed out after 5 minutes"));
-        },
-        5 * 60 * 1000,
-      );
-    });
-
+  onModuleInit(): Promise<void> {
+    this.bootstrapPromise ??= this.bootstrap();
     return this.bootstrapPromise;
   }
 
-  async onModuleInit() {
+  /**
+   * Wait for bootstrap to complete. Jobs call this before running.
+   * Resolves once startup population finished; rejects if it failed — a
+   * failed bootstrap must not unblock dispatch (B6). Nest awaits
+   * onModuleInit before scheduled jobs register, so in production this
+   * returns an already-settled promise; the seam stays explicit and testable.
+   */
+  waitForBootstrap(): Promise<void> {
+    return this.bootstrapPromise ?? this.onModuleInit();
+  }
+
+  private async bootstrap(): Promise<void> {
     this.logger.log("Running startup population job...");
 
     const regions = await this.sources.getEBirdSources();
@@ -72,8 +49,8 @@ export class BootstrapService implements OnModuleInit {
       }
     }
 
-    // If marking pre-existing alerts fails, let onModuleInit reject: a
-    // crashed startup beats dispatching a burst of stale alerts (B6).
+    // If marking pre-existing alerts fails, let bootstrap reject: a crashed
+    // startup beats dispatching a burst of stale alerts (B6).
     const pending = await this.alertQueue.pendingEBirdAlerts();
     await this.alertQueue.markSent(pending);
     this.logger.log(
@@ -81,6 +58,5 @@ export class BootstrapService implements OnModuleInit {
     );
 
     this.logger.log("Startup population complete.");
-    this.bootstrapComplete = true;
   }
 }
