@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FiltersReactions } from "./filters.reactions";
 import type { FiltersRepository } from "./filters.repository";
 
@@ -7,10 +8,10 @@ describe("FiltersReactions", () => {
   let reactions: FiltersReactions;
 
   const repoMock = {
-    addChannelFilter: jest.fn(),
-    isChannelFilterable: jest.fn(),
+    addChannelFilter: vi.fn(),
+    isChannelFilterable: vi.fn(),
   };
-  const configMock = { get: jest.fn() };
+  const configMock = { get: vi.fn() };
 
   const fullUser = { bot: false, partial: false };
 
@@ -30,10 +31,10 @@ describe("FiltersReactions", () => {
     reactions.onReactionAdd([reaction, user] as never);
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.spyOn(Logger.prototype, "debug").mockImplementation();
-    jest.spyOn(Logger.prototype, "error").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    vi.clearAllMocks();
+    vi.spyOn(Logger.prototype, "debug").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "error").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
     configMock.get.mockReturnValue(3);
     repoMock.isChannelFilterable.mockResolvedValue(true);
     repoMock.addChannelFilter.mockResolvedValue([]);
@@ -44,7 +45,7 @@ describe("FiltersReactions", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("adds a filter when the channel is filterable and an embed title exists", async () => {
@@ -59,7 +60,7 @@ describe("FiltersReactions", () => {
   it("fetches a partial user before reading bot (B9)", async () => {
     const partialUser = {
       bot: null,
-      fetch: jest.fn().mockResolvedValue({ bot: false, partial: false }),
+      fetch: vi.fn().mockResolvedValue({ bot: false, partial: false }),
       partial: true,
     };
 
@@ -75,7 +76,7 @@ describe("FiltersReactions", () => {
   it("ignores a bot user discovered after fetching (B9)", async () => {
     const partialBot = {
       bot: null,
-      fetch: jest.fn().mockResolvedValue({ bot: true, partial: false }),
+      fetch: vi.fn().mockResolvedValue({ bot: true, partial: false }),
       partial: true,
     };
 
@@ -88,7 +89,7 @@ describe("FiltersReactions", () => {
   it("bails out when the user fetch fails", async () => {
     const partialUser = {
       bot: null,
-      fetch: jest.fn().mockRejectedValue(new Error("unknown user")),
+      fetch: vi.fn().mockRejectedValue(new Error("unknown user")),
       partial: true,
     };
 
@@ -105,7 +106,7 @@ describe("FiltersReactions", () => {
 
   it("fetches a partial reaction before reading it", async () => {
     const partialReaction = {
-      fetch: jest.fn().mockResolvedValue(makeReaction()),
+      fetch: vi.fn().mockResolvedValue(makeReaction()),
       partial: true,
     };
 
@@ -120,7 +121,7 @@ describe("FiltersReactions", () => {
 
   it("bails out when the reaction fetch fails", async () => {
     const partialReaction = {
-      fetch: jest.fn().mockRejectedValue(new Error("unknown message")),
+      fetch: vi.fn().mockRejectedValue(new Error("unknown message")),
       partial: true,
     };
 

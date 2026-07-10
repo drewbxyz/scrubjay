@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 import { Test, type TestingModule } from "@nestjs/testing";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EBirdFetcher } from "./ebird.fetcher";
 import type { EBirdObservation } from "./ebird.schema";
 import { EBirdTransformer } from "./ebird.transformer";
@@ -11,15 +12,15 @@ describe("IngestService", () => {
   let service: IngestService;
 
   const fetcherMock = {
-    fetchRareObservations: jest.fn(),
+    fetchRareObservations: vi.fn(),
   };
 
   const transformerMock = {
-    transformObservations: jest.fn(),
+    transformObservations: vi.fn(),
   };
 
   const repoMock = {
-    upsertObservation: jest.fn(),
+    upsertObservation: vi.fn(),
   };
 
   const rawObservation: EBirdObservation = {
@@ -94,11 +95,11 @@ describe("IngestService", () => {
     }).compile();
 
     service = module.get<IngestService>(IngestService);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it("returns zero and skips transform when fetching observations fails", async () => {
@@ -131,7 +132,7 @@ describe("IngestService", () => {
   });
 
   it("continues past a failed observation and counts only successes", async () => {
-    jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    vi.spyOn(Logger.prototype, "warn").mockImplementation(() => {});
     fetcherMock.fetchRareObservations.mockResolvedValue([rawObservation]);
     transformerMock.transformObservations.mockReturnValue([
       transformedObservation,

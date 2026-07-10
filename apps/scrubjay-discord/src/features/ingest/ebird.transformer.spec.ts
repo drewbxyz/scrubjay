@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import type { EBirdObservation } from "./ebird.schema";
 import { EBirdTransformer } from "./ebird.transformer";
 

@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessageSenderService } from "@/discord/message-sender.service";
 import type { AlertQueue, PendingEBirdAlert } from "./alert-queue.service";
 import { DispatchService } from "./dispatch.service";
@@ -31,15 +32,15 @@ function makeAlert(
 describe("DispatchService", () => {
   let service: DispatchService;
 
-  const alertQueueMock = { markSent: jest.fn(), pendingEBirdAlerts: jest.fn() };
-  const senderMock = { send: jest.fn() };
+  const alertQueueMock = { markSent: vi.fn(), pendingEBirdAlerts: vi.fn() };
+  const senderMock = { send: vi.fn() };
 
   const since = new Date("2026-07-08T00:00:00Z");
 
   beforeEach(() => {
-    jest.spyOn(Logger.prototype, "debug").mockImplementation();
-    jest.spyOn(Logger.prototype, "error").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    vi.spyOn(Logger.prototype, "debug").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "error").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
 
     alertQueueMock.pendingEBirdAlerts.mockReset().mockResolvedValue([]);
     alertQueueMock.markSent.mockReset().mockResolvedValue(undefined);
@@ -52,7 +53,7 @@ describe("DispatchService", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("asks the queue for alerts pending since the cutoff", async () => {

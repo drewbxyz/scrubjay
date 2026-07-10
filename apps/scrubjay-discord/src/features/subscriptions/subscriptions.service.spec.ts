@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InvalidRegionError } from "./invalid-region.error";
 import type { SubscriptionsRepository } from "./subscriptions.repository";
 import { SubscriptionsService } from "./subscriptions.service";
@@ -6,13 +7,13 @@ describe("SubscriptionsService", () => {
   let service: SubscriptionsService;
 
   const repoMock = {
-    deleteSubscription: jest.fn(),
-    insertSubscription: jest.fn(),
-    subscriptionsForChannel: jest.fn(),
+    deleteSubscription: vi.fn(),
+    insertSubscription: vi.fn(),
+    subscriptionsForChannel: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new SubscriptionsService(
       repoMock as unknown as SubscriptionsRepository,
     );

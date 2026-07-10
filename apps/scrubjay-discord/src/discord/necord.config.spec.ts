@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { createNecordOptions } from "./necord.config";
 
 describe("createNecordOptions", () => {

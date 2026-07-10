@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { validateConfig } from "./config.schema";
 
 const validEnv = {

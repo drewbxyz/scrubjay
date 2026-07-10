@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { deliveries } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
@@ -18,8 +19,8 @@ describe("AlertQueue", () => {
   let pool: Pool;
   let queue: AlertQueue;
 
-  beforeAll(() => {
-    ({ db, pool } = createTestDb());
+  beforeAll(async () => {
+    ({ db, pool } = await createTestDb());
     queue = new AlertQueue(new AlertQueueRepository(db));
   });
 

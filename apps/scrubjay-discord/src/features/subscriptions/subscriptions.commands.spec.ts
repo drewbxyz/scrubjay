@@ -4,6 +4,7 @@ import type {
   SlashCommandContext,
   StringSelectContext,
 } from "necord";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SubscribeEBirdOptions } from "./options/subscribe-ebird.options";
 import { SubscriptionsCommands } from "./subscriptions.commands";
 import type { SubscriptionsService } from "./subscriptions.service";
@@ -12,21 +13,21 @@ describe("SubscriptionsCommands", () => {
   let commands: SubscriptionsCommands;
 
   const serviceMock = {
-    listSubscriptions: jest.fn(),
-    subscribe: jest.fn(),
-    unsubscribe: jest.fn(),
+    listSubscriptions: vi.fn(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
   };
   const interaction = {
     channelId: "CH1",
-    deferReply: jest.fn(),
-    deferUpdate: jest.fn(),
-    editReply: jest.fn(),
-    reply: jest.fn(),
-    update: jest.fn(),
+    deferReply: vi.fn(),
+    deferUpdate: vi.fn(),
+    editReply: vi.fn(),
+    reply: vi.fn(),
+    update: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     serviceMock.listSubscriptions.mockResolvedValue([]);
     commands = new SubscriptionsCommands(
       serviceMock as unknown as SubscriptionsService,

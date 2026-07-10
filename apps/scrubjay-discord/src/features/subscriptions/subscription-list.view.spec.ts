@@ -2,6 +2,7 @@ import type {
   APIButtonComponentWithCustomId,
   APIStringSelectComponent,
 } from "discord.js";
+import { describe, expect, it } from "vitest";
 import {
   buildSubscriptionListView,
   PAGE_SIZE,

@@ -1,19 +1,20 @@
 import type { Client } from "discord.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MessageSenderService } from "./message-sender.service";
 
 describe("MessageSenderService", () => {
   let sender: MessageSenderService;
 
-  const fetchMock = jest.fn();
+  const fetchMock = vi.fn();
   const clientMock = { channels: { fetch: fetchMock } } as unknown as Client;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     sender = new MessageSenderService(clientMock);
   });
 
   it("sends to a sendable channel", async () => {
-    const send = jest.fn();
+    const send = vi.fn();
     fetchMock.mockResolvedValue({ isSendable: () => true, send });
 
     await sender.send("channel-1", { embeds: [] });
@@ -31,7 +32,7 @@ describe("MessageSenderService", () => {
   });
 
   it("throws when the channel is not sendable", async () => {
-    const send = jest.fn();
+    const send = vi.fn();
     fetchMock.mockResolvedValue({ isSendable: () => false, send });
 
     await expect(sender.send("channel-1", "hi")).rejects.toThrow(

@@ -1,4 +1,5 @@
 import type { EmbedBuilder } from "discord.js";
+import { describe, expect, it } from "vitest";
 import type { PendingEBirdAlert } from "./alert-queue.service";
 import { planEBirdAlerts } from "./ebird-alert.formatter";
 

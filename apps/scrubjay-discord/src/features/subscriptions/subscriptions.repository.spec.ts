@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 import type { AlertQueue } from "../dispatch/alert-queue.service";
 import { SubscriptionsRepository } from "./subscriptions.repository";
@@ -5,30 +6,30 @@ import { SubscriptionsRepository } from "./subscriptions.repository";
 describe("SubscriptionsRepository", () => {
   let repository: SubscriptionsRepository;
 
-  const backfillEBird = jest.fn();
+  const backfillEBird = vi.fn();
 
   // insert chain: tx.insert().values().onConflictDoNothing().returning()
-  const insertReturning = jest.fn();
-  const insertOnConflict = jest.fn(() => ({ returning: insertReturning }));
-  const insertValues = jest.fn(() => ({
+  const insertReturning = vi.fn();
+  const insertOnConflict = vi.fn(() => ({ returning: insertReturning }));
+  const insertValues = vi.fn(() => ({
     onConflictDoNothing: insertOnConflict,
   }));
-  const tx = { insert: jest.fn(() => ({ values: insertValues })) };
+  const tx = { insert: vi.fn(() => ({ values: insertValues })) };
 
   // delete chain: db.delete().where().returning()
-  const deleteReturning = jest.fn();
-  const deleteWhere = jest.fn(() => ({ returning: deleteReturning }));
+  const deleteReturning = vi.fn();
+  const deleteWhere = vi.fn(() => ({ returning: deleteReturning }));
 
   // select chain: db.select().from().where().orderBy()
-  const selectOrderBy = jest.fn();
-  const selectWhere = jest.fn(() => ({ orderBy: selectOrderBy }));
-  const selectFrom = jest.fn(() => ({ where: selectWhere }));
+  const selectOrderBy = vi.fn();
+  const selectWhere = vi.fn(() => ({ orderBy: selectOrderBy }));
+  const selectFrom = vi.fn(() => ({ where: selectWhere }));
 
   const drizzleMock = {
     db: {
-      delete: jest.fn(() => ({ where: deleteWhere })),
-      select: jest.fn(() => ({ from: selectFrom })),
-      transaction: jest.fn(async (cb) => cb(tx)),
+      delete: vi.fn(() => ({ where: deleteWhere })),
+      select: vi.fn(() => ({ from: selectFrom })),
+      transaction: vi.fn(async (cb) => cb(tx)),
     },
   } as unknown as DrizzleService;
 
@@ -41,7 +42,7 @@ describe("SubscriptionsRepository", () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     repository = new SubscriptionsRepository(drizzleMock, alertQueueMock);
   });
 
