@@ -20,7 +20,7 @@ describe("IngestService", () => {
   };
 
   const repoMock = {
-    upsertObservation: vi.fn(),
+    upsertObservations: vi.fn(),
   };
 
   const rawObservation: EBirdObservation = {
@@ -125,24 +125,28 @@ describe("IngestService", () => {
     expect(transformerMock.transformObservations).toHaveBeenCalledWith([
       rawObservation,
     ]);
-    expect(repoMock.upsertObservation).toHaveBeenCalledWith(
+    expect(repoMock.upsertObservations).toHaveBeenCalledWith([
       transformedObservation,
-    );
+    ]);
     expect(inserted).toBe(1);
   });
 
-  it("continues past a failed observation and counts only successes", async () => {
-    vi.spyOn(Logger.prototype, "warn").mockImplementation(() => {});
+  it("returns zero and logs when persisting the batch fails", async () => {
+    const errorSpy = vi
+      .spyOn(Logger.prototype, "error")
+      .mockImplementation(() => {});
     fetcherMock.fetchRareObservations.mockResolvedValue([rawObservation]);
     transformerMock.transformObservations.mockReturnValue([
       transformedObservation,
-      { ...transformedObservation, subId: "sub-2" },
     ]);
-    repoMock.upsertObservation.mockRejectedValueOnce(new Error("db down"));
+    repoMock.upsertObservations.mockRejectedValue(new Error("db down"));
 
     const inserted = await service.ingestRegion("US-WA");
 
-    expect(repoMock.upsertObservation).toHaveBeenCalledTimes(2);
-    expect(inserted).toBe(1);
+    expect(inserted).toBe(0);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("US-WA"),
+      expect.any(String),
+    );
   });
 });

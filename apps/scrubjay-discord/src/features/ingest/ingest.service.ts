@@ -29,21 +29,18 @@ export class IngestService {
       return 0;
     }
 
-    const transformedObservations =
-      this.transformer.transformObservations(rawObservations);
+    const batch = this.transformer.transformObservations(rawObservations);
 
-    let insertedCount = 0;
-    for (const obs of transformedObservations) {
-      try {
-        await this.repo.upsertObservation(obs);
-        insertedCount++;
-      } catch (_err) {
-        this.logger.warn(
-          `Failed to insert observation: ${obs.speciesCode}:${obs.subId}`,
-        );
-      }
+    try {
+      await this.repo.upsertObservations(batch);
+    } catch (err) {
+      this.logger.error(
+        `Error persisting ${batch.length} observations from ${regionCode}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      return 0;
     }
 
-    return insertedCount;
+    return batch.length;
   }
 }
