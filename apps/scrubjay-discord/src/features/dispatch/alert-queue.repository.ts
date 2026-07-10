@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
   type DeliveryStatus,
@@ -11,6 +11,18 @@ import {
 import { type DbOrTx, DrizzleService } from "@/core/drizzle/drizzle.service";
 
 const CONFIRMED_WINDOW_DAYS = 7;
+
+/**
+ * Per-tick cap on the pending read. Overflow stays pending (no delivery row
+ * is written) and drains oldest-first on later ticks; the 15-minute window
+ * gives ~15 attempts before the expired sweep records the loss. Sized for
+ * fan-out — pending rows are observation × subscribed channel, and a
+ * realistic statewide burst (30 observations × 250 channels = 7,500 rows)
+ * must clear well inside the window; the cap should bite only on genuine
+ * pathology. The tiebreakers make truncation deterministic: a bulk-ingested
+ * batch shares one created_at, and fan-out rows differ only by channel_id.
+ */
+export const PENDING_ALERT_LIMIT = 5_000;
 
 /**
  * Narrows the pending-alert match to one Subscription row (not just a channel —
@@ -227,7 +239,14 @@ export class AlertQueueRepository {
       .innerJoin(channelEBirdSubscriptions, this.subscriptionMatch())
       .leftJoin(filteredSpecies, this.filteredSpeciesMatch())
       .leftJoin(deliveries, this.priorDeliveryMatch())
-      .where(this.pendingWhere(since));
+      .where(this.pendingWhere(since))
+      .orderBy(
+        asc(observations.createdAt),
+        asc(observations.speciesCode),
+        asc(observations.subId),
+        asc(channelEBirdSubscriptions.channelId),
+      )
+      .limit(PENDING_ALERT_LIMIT);
   }
 
   // --- Matching semantics, single-sourced ---------------------------------

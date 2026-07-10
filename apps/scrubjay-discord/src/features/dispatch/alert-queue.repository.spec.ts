@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   channelEBirdSubscriptions,
   deliveries,
+  observations,
 } from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
@@ -15,7 +16,10 @@ import {
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
-import { AlertQueueRepository } from "./alert-queue.repository";
+import {
+  AlertQueueRepository,
+  PENDING_ALERT_LIMIT,
+} from "./alert-queue.repository";
 
 describe("AlertQueueRepository", () => {
   let db: DrizzleService;
@@ -273,6 +277,44 @@ describe("AlertQueueRepository", () => {
       );
 
       expect(expired).toEqual([]);
+    });
+  });
+
+  describe("pending read bound", () => {
+    it("returns at most PENDING_ALERT_LIMIT alerts, oldest first", async () => {
+      await seedLocation(db);
+      await seedSubscription(db);
+      const base = Date.now();
+      const rows = Array.from({ length: PENDING_ALERT_LIMIT + 10 }, (_, i) => ({
+        audioCount: 0,
+        comName: "Vermilion Flycatcher",
+        // i = 0 is oldest; the 10 newest rows must be the ones deferred.
+        createdAt: new Date(base - (PENDING_ALERT_LIMIT + 10 - i) * 1000),
+        hasComments: false,
+        howMany: 1,
+        locId: "L001",
+        obsDt: new Date(),
+        obsReviewed: false,
+        obsValid: false,
+        photoCount: 0,
+        presenceNoted: false,
+        sciName: "Pyrocephalus rubinus",
+        speciesCode: "verfly",
+        subId: `S${String(i).padStart(4, "0")}`,
+        videoCount: 0,
+      }));
+      for (let i = 0; i < rows.length; i += 1000) {
+        await db.db.insert(observations).values(rows.slice(i, i + 1000));
+      }
+
+      const pending = await repository.pendingEBirdAlerts();
+
+      expect(pending).toHaveLength(PENDING_ALERT_LIMIT);
+      expect(pending[0].subId).toBe("S0000");
+      const returned = new Set(pending.map((alert) => alert.subId));
+      for (let i = PENDING_ALERT_LIMIT; i < PENDING_ALERT_LIMIT + 10; i += 1) {
+        expect(returned.has(`S${String(i).padStart(4, "0")}`)).toBe(false);
+      }
     });
   });
 });
