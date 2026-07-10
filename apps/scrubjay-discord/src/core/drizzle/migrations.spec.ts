@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm";
+import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/testing/db-helpers";
 
 describe("migrations", () => {
   it("creates the expected tables", async () => {
-    const { db, pool } = createTestDb();
+    const { db, pool } = await createTestDb();
     try {
       const result = await db.db.execute(
         sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`,

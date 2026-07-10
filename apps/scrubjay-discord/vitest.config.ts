@@ -14,6 +14,7 @@ export default defineConfig({
       reportsDirectory: "./coverage",
     },
     environment: "node",
+    globalSetup: ["src/testing/global-setup.ts"],
     include: ["src/**/*.spec.ts"],
   },
 });

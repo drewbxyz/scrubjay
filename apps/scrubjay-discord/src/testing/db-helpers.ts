@@ -11,12 +11,50 @@ import {
 } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
-export function createTestDb() {
-  const url = process.env.TEST_DATABASE_URL;
-  if (!url) {
-    throw new Error("TEST_DATABASE_URL not set — is global-setup configured?");
+export const TEMPLATE_DB = "scrubjay_template";
+
+const ENSURE_DB_LOCK = 727_001;
+
+export function dbUri(baseUri: string, dbName: string): string {
+  const url = new URL(baseUri);
+  url.pathname = `/${dbName}`;
+  return url.toString();
+}
+
+async function ensureWorkerDatabase(baseUri: string, dbName: string) {
+  // Serialize CREATE DATABASE calls: concurrent clones of the same template
+  // fail in Postgres, and pg advisory locks are session-scoped, so lock and
+  // unlock must happen on one dedicated client.
+  const pool = new Pool({ connectionString: baseUri, max: 1 });
+  const client = await pool.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock($1)", [ENSURE_DB_LOCK]);
+    try {
+      const existing = await client.query(
+        "SELECT 1 FROM pg_database WHERE datname = $1",
+        [dbName],
+      );
+      if (existing.rowCount === 0) {
+        await client.query(`CREATE DATABASE ${dbName} TEMPLATE ${TEMPLATE_DB}`);
+      }
+    } finally {
+      await client.query("SELECT pg_advisory_unlock($1)", [ENSURE_DB_LOCK]);
+    }
+  } finally {
+    client.release();
+    await pool.end();
   }
-  const pool = new Pool({ connectionString: url });
+}
+
+export async function createTestDb() {
+  const baseUri = process.env.TEST_PG_BASE_URL;
+  if (!baseUri) {
+    throw new Error("TEST_PG_BASE_URL not set — is global-setup configured?");
+  }
+  const dbName = `test_${process.env.VITEST_POOL_ID ?? "0"}`;
+  await ensureWorkerDatabase(baseUri, dbName);
+
+  const pool = new Pool({ connectionString: dbUri(baseUri, dbName) });
   const db = new DrizzleService(drizzle(pool, { schema }));
   return { db, pool };
 }

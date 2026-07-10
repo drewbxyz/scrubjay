@@ -6,23 +6,37 @@ import {
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+import { dbUri, TEMPLATE_DB } from "./db-helpers";
 
-const globalWithContainer = globalThis as typeof globalThis & {
-  __PG_CONTAINER__?: StartedPostgreSqlContainer;
-};
+let container: StartedPostgreSqlContainer;
 
-export default async function globalSetup() {
-  const container = await new PostgreSqlContainer("postgres:17").start();
-  globalWithContainer.__PG_CONTAINER__ = container;
-  process.env.TEST_DATABASE_URL = container.getConnectionUri();
+export async function setup() {
+  container = await new PostgreSqlContainer("postgres:17").start();
+  const baseUri = container.getConnectionUri();
 
-  // Same migration path production takes in main.ts.
-  const pool = new Pool({ connectionString: container.getConnectionUri() });
+  const adminPool = new Pool({ connectionString: baseUri });
   try {
-    await migrate(drizzle(pool), {
-      migrationsFolder: join(__dirname, "..", "drizzle"),
+    await adminPool.query(`CREATE DATABASE ${TEMPLATE_DB}`);
+  } finally {
+    await adminPool.end();
+  }
+
+  // Same migration path production takes in main.ts, applied to the template.
+  const templatePool = new Pool({
+    connectionString: dbUri(baseUri, TEMPLATE_DB),
+  });
+  try {
+    await migrate(drizzle(templatePool), {
+      migrationsFolder: join(process.cwd(), "src", "drizzle"),
     });
   } finally {
-    await pool.end();
+    await templatePool.end();
   }
+
+  // Workers derive per-worker database names from this base URI.
+  process.env.TEST_PG_BASE_URL = baseUri;
+}
+
+export async function teardown() {
+  await container?.stop();
 }
