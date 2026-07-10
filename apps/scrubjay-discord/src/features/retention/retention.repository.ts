@@ -41,7 +41,7 @@ export class RetentionRepository {
         DELETE FROM deliveries
         WHERE id IN (
           SELECT id FROM deliveries
-          WHERE sent_at < ${cutoff}
+          WHERE sent_at IS NULL OR sent_at < ${cutoff}
           LIMIT ${limit}
         )`,
       batchSize,

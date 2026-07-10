@@ -87,6 +87,16 @@ describe("RetentionRepository", () => {
       const remaining = await db.db.select().from(deliveries);
       expect(remaining.map((row) => row.alertId)).toEqual(["verfly:YOUNG"]);
     });
+
+    it("prunes rows with a NULL sent_at (never immortal)", async () => {
+      await seedDelivery(db, { alertId: "verfly:NULLSENT", sentAt: null });
+
+      const deleted = await repository.pruneDeliveries(daysAgo(30));
+
+      expect(deleted).toBe(1);
+      const remaining = await db.db.select().from(deliveries);
+      expect(remaining).toHaveLength(0);
+    });
   });
 
   describe("pruneOrphanLocations", () => {

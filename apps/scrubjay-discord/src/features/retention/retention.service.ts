@@ -16,6 +16,8 @@ export const OBSERVATION_RETENTION_DAYS = 14;
  * Ops history only — nothing reads past the health endpoint's 24h counts.
  * Hard floor is 8 days (the expired sweep scans createdAt back 7 days; a
  * missing delivery row inside that span fabricates 'expired' outcomes).
+ * Deliveries are pruned by sent_at, and sent_at >= createdAt always, so a
+ * 30-day sent_at floor is always outside the 7-day createdAt sweep window.
  */
 export const DELIVERY_RETENTION_DAYS = 30;
 
