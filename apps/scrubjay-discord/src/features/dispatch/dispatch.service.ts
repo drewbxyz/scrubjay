@@ -5,6 +5,7 @@ import {
   type AlertRef,
   type PendingEBirdAlert,
 } from "./alert-queue.service";
+import { classifySendError } from "./discord-error";
 import { planEBirdAlerts } from "./ebird-alert.formatter";
 
 /**
@@ -30,24 +31,49 @@ export class DispatchService {
       return;
     }
 
-    const sent: AlertRef[] = [];
-
+    let sentCount = 0;
     for (const plan of planEBirdAlerts(pending)) {
+      const refs = plan.alerts.map(toAlertRef);
       try {
         await this.sender.send(plan.channelId, plan.message);
-        sent.push(...plan.alerts.map(toAlertRef));
+        // Record immediately: a crash now loses at most this one plan's
+        // records instead of the whole tick's (at-least-once, spec §2).
+        await this.alertQueue.record(refs, "sent");
+        sentCount += refs.length;
       } catch (err) {
-        this.logger.error(
-          `Send failed for channel ${plan.channelId}; alerts stay pending`,
-          err instanceof Error ? err.stack : String(err),
-        );
+        await this.handleSendFailure(plan.channelId, refs, err);
       }
     }
 
-    await this.alertQueue.record(sent, "sent");
+    if (sentCount > 0) {
+      this.logger.log(`Delivered ${sentCount} alerts`);
+    }
+  }
 
-    if (sent.length > 0) {
-      this.logger.log(`Marked ${sent.length} alerts as delivered`);
+  private async handleSendFailure(
+    channelId: string,
+    refs: AlertRef[],
+    err: unknown,
+  ): Promise<void> {
+    const failure = classifySendError(err);
+    if (failure.kind === "transient") {
+      this.logger.error(
+        `Send failed for channel ${channelId}; alerts stay pending`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      return;
+    }
+
+    await this.alertQueue.record(refs, "failed", `discord:${failure.code}`);
+    if (failure.channelGone) {
+      const count = await this.alertQueue.deactivateChannel(channelId);
+      this.logger.error(
+        `Channel ${channelId} no longer exists; recorded ${refs.length} alerts as failed and deactivated ${count} subscription(s)`,
+      );
+    } else {
+      this.logger.error(
+        `Send permanently failed for channel ${channelId} (discord:${failure.code}); recorded ${refs.length} alerts as failed`,
+      );
     }
   }
 }

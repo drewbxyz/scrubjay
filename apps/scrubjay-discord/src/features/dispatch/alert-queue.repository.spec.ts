@@ -1,7 +1,10 @@
 import { sql } from "drizzle-orm";
 import type { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { deliveries } from "@/core/drizzle/drizzle.schema";
+import {
+  channelEBirdSubscriptions,
+  deliveries,
+} from "@/core/drizzle/drizzle.schema";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
   createTestDb,
@@ -159,6 +162,26 @@ describe("AlertQueueRepository", () => {
       // is not duplicated (onConflictDoNothing).
       const rows = await db.db.select().from(deliveries);
       expect(rows.map((r) => r.alertId)).toEqual(["snoplo5:S002"]);
+    });
+  });
+
+  describe("deactivateChannelSubscriptions", () => {
+    it("deactivates only the given channel's active subscriptions", async () => {
+      await seedSubscription(db, { channelId: "CH1" });
+      await seedSubscription(db, {
+        channelId: "CH1",
+        countyCode: "*",
+        stateCode: "US-WA",
+      });
+      await seedSubscription(db, { channelId: "CH2" });
+
+      const count = await repository.deactivateChannelSubscriptions("CH1");
+
+      expect(count).toBe(2);
+      const rows = await db.db.select().from(channelEBirdSubscriptions);
+      for (const row of rows) {
+        expect(row.active).toBe(row.channelId === "CH2");
+      }
     });
   });
 });

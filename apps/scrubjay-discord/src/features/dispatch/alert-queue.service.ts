@@ -63,4 +63,9 @@ export class AlertQueue {
   async backfillEBird(scope: SubscriptionScope, db?: DbOrTx): Promise<void> {
     await this.repository.backfillDeliveries(scope, db);
   }
+
+  /** Deactivate a dead channel's subscriptions (spec §2, Unknown Channel). */
+  async deactivateChannel(channelId: string): Promise<number> {
+    return this.repository.deactivateChannelSubscriptions(channelId);
+  }
 }

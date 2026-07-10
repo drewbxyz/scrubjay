@@ -77,6 +77,25 @@ export class AlertQueueRepository {
   }
 
   /**
+   * Deactivate every active subscription for a channel. Lives here (not in
+   * SubscriptionsRepository) because dispatch owns delivery outcomes and the
+   * reverse module import would be a cycle. Returns the number deactivated.
+   */
+  async deactivateChannelSubscriptions(channelId: string): Promise<number> {
+    const rows = await this.drizzle.db
+      .update(channelEBirdSubscriptions)
+      .set({ active: false })
+      .where(
+        and(
+          eq(channelEBirdSubscriptions.channelId, channelId),
+          eq(channelEBirdSubscriptions.active, true),
+        ),
+      )
+      .returning({ channelId: channelEBirdSubscriptions.channelId });
+    return rows.length;
+  }
+
+  /**
    * Subscribe-time backfill: record every currently-pending alert for one
    * Subscription as delivered, without sending it. The match runs in Postgres
    * and projects only the delivery identity (no wide row, no recentlyConfirmed
