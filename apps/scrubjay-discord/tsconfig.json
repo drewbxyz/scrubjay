@@ -19,7 +19,7 @@
     "strictBindCallApply": false,
     "strictNullChecks": true,
     "target": "ES2023",
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist"],
   "include": ["src/**/*"]
