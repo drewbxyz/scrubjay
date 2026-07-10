@@ -6,6 +6,10 @@ export function createNecordOptions(
   config: Pick<AppConfig, "DEVELOPMENT_GUILD_ID" | "DISCORD_TOKEN">,
 ): NecordModuleOptions {
   return {
+    // Defense-in-depth: never resolve @mentions from any content we send.
+    // We post embeds only today, but this makes an accidental mention in
+    // future message text non-pinging by default.
+    allowedMentions: { parse: [] },
     development: config.DEVELOPMENT_GUILD_ID
       ? [config.DEVELOPMENT_GUILD_ID]
       : false,
