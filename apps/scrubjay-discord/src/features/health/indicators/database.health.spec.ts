@@ -5,10 +5,9 @@ import { DatabaseHealthIndicator } from "./database.health";
 
 describe("DatabaseHealthIndicator", () => {
   const makeIndicator = (execute: ReturnType<typeof vi.fn>) =>
-    new DatabaseHealthIndicator(
-      new HealthIndicatorService(),
-      { db: { execute } } as unknown as DrizzleService,
-    );
+    new DatabaseHealthIndicator(new HealthIndicatorService(), {
+      db: { execute },
+    } as unknown as DrizzleService);
 
   it("reports up when SELECT 1 succeeds", async () => {
     const execute = vi.fn().mockResolvedValue([]);

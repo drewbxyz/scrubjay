@@ -14,7 +14,7 @@ describe("IngestHealthIndicator", () => {
 
     const result = indicator.isHealthy("ingest");
 
-    expect(result["ingest"]).toMatchObject({
+    expect(result.ingest).toMatchObject({
       noSources: true,
       sources: [],
       status: "up",

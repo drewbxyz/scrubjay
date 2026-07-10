@@ -1,9 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { count, gte } from "drizzle-orm";
-import {
-  deliveries,
-  type DeliveryStatus,
-} from "@/core/drizzle/drizzle.schema";
+import { type DeliveryStatus, deliveries } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 
 export const DELIVERY_COUNT_WINDOW_MS = 24 * 60 * 60 * 1000;

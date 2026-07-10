@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { HealthIndicatorService } from "@nestjs/terminus";
-import { HealthStateService } from "../health-state.service";
 import { HealthRepository } from "../health.repository";
+import { HealthStateService } from "../health-state.service";
 
 /**
  * Always "up" by design; the DB query can still throw, but in that scenario

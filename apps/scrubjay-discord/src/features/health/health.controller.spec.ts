@@ -1,12 +1,12 @@
-import { Logger } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { TerminusModule } from "@nestjs/terminus";
 import { Test } from "@nestjs/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
-import { HealthStateService } from "./health-state.service";
 import { HealthController } from "./health.controller";
 import { HealthRepository } from "./health.repository";
+import { HealthStateService } from "./health-state.service";
 import { DatabaseHealthIndicator } from "./indicators/database.health";
 import { DispatchHealthIndicator } from "./indicators/dispatch.health";
 import { IngestHealthIndicator } from "./indicators/ingest.health";

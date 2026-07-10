@@ -52,7 +52,7 @@ describe("HealthStateService", () => {
 
     vi.advanceTimersByTime(INGEST_STALE_AFTER_MS + 1);
 
-    expect(service.snapshot().ingest.regions["US-CA"]!.stale).toBe(true);
+    expect(service.snapshot().ingest.regions["US-CA"]?.stale).toBe(true);
   });
 
   it("measures never-succeeded regions from boot, not epoch", () => {
@@ -60,11 +60,11 @@ describe("HealthStateService", () => {
 
     // Just under the threshold since construction: not yet stale.
     vi.advanceTimersByTime(INGEST_STALE_AFTER_MS - 1);
-    expect(service.snapshot().ingest.regions["US-NM"]!.stale).toBe(false);
+    expect(service.snapshot().ingest.regions["US-NM"]?.stale).toBe(false);
 
     // Past it: stale.
     vi.advanceTimersByTime(2);
-    expect(service.snapshot().ingest.regions["US-NM"]!.stale).toBe(true);
+    expect(service.snapshot().ingest.regions["US-NM"]?.stale).toBe(true);
   });
 
   it("flags noSources only after a tick reports an empty list", () => {

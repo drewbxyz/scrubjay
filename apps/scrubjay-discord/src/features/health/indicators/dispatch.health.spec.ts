@@ -1,7 +1,7 @@
 import { HealthIndicatorService } from "@nestjs/terminus";
 import { describe, expect, it, vi } from "vitest";
-import { HealthStateService } from "../health-state.service";
 import type { HealthRepository } from "../health.repository";
+import { HealthStateService } from "../health-state.service";
 import { DispatchHealthIndicator } from "./dispatch.health";
 
 describe("DispatchHealthIndicator", () => {
@@ -20,10 +20,10 @@ describe("DispatchHealthIndicator", () => {
 
     const result = await indicator.isHealthy("dispatch");
 
-    expect(result["dispatch"]).toMatchObject({
+    expect(result.dispatch).toMatchObject({
       last24h: counts,
       status: "up",
     });
-    expect(result["dispatch"]!.lastTickAt).toEqual(expect.any(String));
+    expect(result.dispatch?.lastTickAt).toEqual(expect.any(String));
   });
 });
