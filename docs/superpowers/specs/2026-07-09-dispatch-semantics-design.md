@@ -75,7 +75,9 @@ API change: `AlertQueue.markSent(alerts)` generalizes to
 `AlertQueue.record(alerts, status, detail?)` (insert with `onConflictDoNothing`,
 as today). `BootstrapService` calls `record(pending, "suppressed")` for the B6
 startup-burst suppression, so bootstrap rows stop masquerading as real
-deliveries in future stats.
+deliveries in future stats. The subscribe-time backfill
+(`backfillDeliveries` in `alert-queue.repository.ts`) records `suppressed` for
+the same reason — those alerts were never actually sent either.
 
 ### 3. Overlap guard
 
