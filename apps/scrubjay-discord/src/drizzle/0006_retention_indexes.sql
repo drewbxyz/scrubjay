@@ -1,0 +1,1 @@
+CREATE INDEX "obs_species_location_date_idx" ON "observations" USING btree ("species_code","location_id","observation_date");

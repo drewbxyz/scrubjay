@@ -80,6 +80,20 @@ describe("AlertQueueRepository", () => {
         /Anti Join[^\n]*\n\s*\S+ Cond:[^\n]*deliveries\.alert_id/,
       );
     });
+
+    it("has a covering index for the recentlyConfirmed probe", async () => {
+      const result = await pool.query(
+        `SELECT indexdef FROM pg_indexes
+         WHERE tablename = 'observations'
+           AND indexname = 'obs_species_location_date_idx'`,
+      );
+      expect(result.rowCount).toBe(1);
+      // pg_indexes reconstructs the DDL and only quotes identifiers that
+      // need it; plain lowercase snake_case columns come back unquoted.
+      expect(result.rows[0].indexdef).toContain(
+        "(species_code, location_id, observation_date)",
+      );
+    });
   });
 
   describe("delivery status column", () => {

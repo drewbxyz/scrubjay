@@ -42,6 +42,13 @@
       "tag": "0005_delivery_status",
       "version": "7",
       "when": 1783659461851
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783721186489,
+      "tag": "0006_retention_indexes",
+      "breakpoints": true
     }
   ],
   "version": "7"

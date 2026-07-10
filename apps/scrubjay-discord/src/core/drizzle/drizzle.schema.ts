@@ -70,6 +70,7 @@ export const observations = pgTable(
     index("obs_created_at_idx").on(t.createdAt),
     index("obs_location_date_idx").on(t.locId, t.obsDt),
     index("obs_review_valid_date_idx").on(t.obsReviewed, t.obsValid, t.obsDt),
+    index("obs_species_location_date_idx").on(t.speciesCode, t.locId, t.obsDt),
   ],
 );
 
