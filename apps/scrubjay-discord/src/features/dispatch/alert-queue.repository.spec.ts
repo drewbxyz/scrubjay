@@ -78,6 +78,30 @@ describe("AlertQueueRepository", () => {
     });
   });
 
+  describe("delivery status column", () => {
+    it("defaults status to 'sent' and detail to null", async () => {
+      await seedDelivery(db);
+
+      const [row] = await db.db.select().from(deliveries);
+      expect(row.status).toBe("sent");
+      expect(row.detail).toBeNull();
+    });
+
+    it("rejects statuses outside the enum at the DB level", async () => {
+      // Drizzle wraps the pg error; the constraint name lives on error.cause.
+      await expect(
+        db.db.execute(
+          sql`INSERT INTO deliveries (alert_id, channel_id, alert_kind, status)
+              VALUES ('verfly:S001', 'CH1', 'ebird', 'bogus')`,
+        ),
+      ).rejects.toMatchObject({
+        cause: expect.objectContaining({
+          message: expect.stringContaining("deliveries_status_check"),
+        }),
+      });
+    });
+  });
+
   describe("backfillDeliveries", () => {
     const scope = {
       channelId: "CH1",

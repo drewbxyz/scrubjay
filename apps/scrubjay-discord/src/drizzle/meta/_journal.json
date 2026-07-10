@@ -35,6 +35,13 @@
       "tag": "0004_drop_rss",
       "version": "7",
       "when": 1783375299441
+    },
+    {
+      "breakpoints": true,
+      "idx": 5,
+      "tag": "0005_delivery_status",
+      "version": "7",
+      "when": 1783659461851
     }
   ],
   "version": "7"

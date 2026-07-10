@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -113,18 +114,35 @@ export const countyTimezones = pgTable(
   (t) => [index("county_code_idx").on(t.countyCode)],
 );
 
+export const deliveryStatuses = [
+  "sent",
+  "failed",
+  "expired",
+  "suppressed",
+] as const;
+export type DeliveryStatus = (typeof deliveryStatuses)[number];
+
 export const deliveries = pgTable(
   "deliveries",
   {
     alertId: text("alert_id").notNull(),
     channelId: text("channel_id").notNull(),
+    // Discord error code/message for 'failed' rows; null otherwise.
+    detail: text("detail"),
     id: serial("id").primaryKey(),
     kind: text("alert_kind").notNull(), // 'ebird' (rss existed historically; rows purged in 0004)
     sentAt: timestamp("sent_at").defaultNow(),
+    status: text("status", { enum: deliveryStatuses })
+      .notNull()
+      .default("sent"),
   },
   (t) => [
     uniqueIndex("deliveries_unique_idx").on(t.kind, t.alertId, t.channelId),
     index("deliveries_channel_idx").on(t.channelId),
+    check(
+      "deliveries_status_check",
+      sql`${t.status} in ('sent', 'failed', 'expired', 'suppressed')`,
+    ),
   ],
 );
 
