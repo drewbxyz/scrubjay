@@ -156,7 +156,7 @@ describe("pending read bound", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/features/dispatch/alert-queue.repository.spec.ts -t "pending read bound"`
-Expected: FAIL — first on the import (`PENDING_ALERT_LIMIT` not exported); after a stub export, on `expected 510 to have length 500`.
+Expected: FAIL — first on the import (`PENDING_ALERT_LIMIT` not exported); after a stub export, on `expected 5010 to have length 5000`.
 
 - [ ] **Step 3: Implement**
 
@@ -206,13 +206,13 @@ Expected: PASS — including the pre-existing EXPLAIN test (the LIMIT adds a num
 - [ ] **Step 5: Run the dispatch service spec (consumer of this query)**
 
 Run: `npx vitest run src/features/dispatch/`
-Expected: PASS — dispatch tests seed far fewer than 500 alerts, so behavior is unchanged.
+Expected: PASS — dispatch tests seed far fewer than 5,000 alerts, so behavior is unchanged.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/features/dispatch/alert-queue.repository.ts src/features/dispatch/alert-queue.repository.spec.ts
-git commit -m "feat(scrubjay-discord): bound the pending read to 500 oldest-first (backlog 2.3)"
+git commit -m "feat(scrubjay-discord): bound the pending read to 5000 oldest-first (backlog 2.3)"
 ```
 
 ---
