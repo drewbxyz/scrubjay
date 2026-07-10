@@ -23,7 +23,7 @@ export class EBirdFetcher {
    */
   async fetchRareObservations(regionCode: string): Promise<EBirdObservation[]> {
     const url = new URL(
-      `/v2/data/obs/${regionCode}/recent/notable?back=7&detail=full`,
+      `/v2/data/obs/${encodeURIComponent(regionCode)}/recent/notable?back=7&detail=full`,
       this.configService.get("EBIRD_BASE_URL", { infer: true }),
     );
 

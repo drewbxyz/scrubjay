@@ -44,8 +44,46 @@ describe("SubscriptionsService", () => {
       });
     });
 
+    it("normalizes a lowercase region code to uppercase", async () => {
+      repoMock.insertSubscription.mockResolvedValue(undefined);
+
+      await service.subscribe("channel-123", "us-wa-033");
+
+      expect(repoMock.insertSubscription).toHaveBeenCalledWith({
+        channelId: "channel-123",
+        countyCode: "US-WA-033",
+        stateCode: "US-WA",
+      });
+    });
+
+    it("trims surrounding whitespace before validating", async () => {
+      repoMock.insertSubscription.mockResolvedValue(undefined);
+
+      await service.subscribe("channel-123", "  US-CA  ");
+
+      expect(repoMock.insertSubscription).toHaveBeenCalledWith({
+        channelId: "channel-123",
+        countyCode: "*",
+        stateCode: "US-CA",
+      });
+    });
+
     it("rejects a 1-part region code with InvalidRegionError", async () => {
       await expect(service.subscribe("channel-123", "US")).rejects.toThrow(
+        InvalidRegionError,
+      );
+
+      expect(repoMock.insertSubscription).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "US-C?A",
+      "US-CA/..",
+      "US-CA-085-",
+      "U1-CA",
+      "US--CA",
+    ])("rejects a region code with illegal characters: %s", async (region) => {
+      await expect(service.subscribe("channel-123", region)).rejects.toThrow(
         InvalidRegionError,
       );
 
