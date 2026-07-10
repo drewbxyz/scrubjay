@@ -68,4 +68,27 @@ describe("DispatchJob", () => {
       expect.stringContaining("channel gone"),
     );
   });
+
+  it("skips a tick while the previous one is still running", async () => {
+    let release!: () => void;
+    dispatcherMock.dispatchSince.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const first = job.run();
+    await job.run(); // overlapping tick — must be a no-op
+
+    expect(dispatcherMock.dispatchSince).toHaveBeenCalledTimes(1);
+
+    release();
+    await first;
+
+    // The guard resets once the tick finishes.
+    dispatcherMock.dispatchSince.mockResolvedValue(undefined);
+    await job.run();
+    expect(dispatcherMock.dispatchSince).toHaveBeenCalledTimes(2);
+  });
 });

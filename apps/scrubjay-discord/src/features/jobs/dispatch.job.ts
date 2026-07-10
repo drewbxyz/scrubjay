@@ -7,6 +7,14 @@ import { BootstrapService } from "./bootstrap.service";
 export class DispatchJob {
   private readonly logger = new Logger(DispatchJob.name);
 
+  /**
+   * Re-entrancy guard: @nestjs/schedule does not serialize overlapping cron
+   * runs, and an overlapped tick would re-read pending alerts before the
+   * running tick records them — double-sending every alert in the slow batch.
+   * In-process only: this deployment is single-instance by design (spec §3).
+   */
+  private inFlight = false;
+
   constructor(
     private readonly dispatch: DispatchService,
     private readonly bootstrapService: BootstrapService,
@@ -14,6 +22,11 @@ export class DispatchJob {
 
   @Cron("*/1 * * * *")
   async run() {
+    if (this.inFlight) {
+      this.logger.debug("Previous dispatch tick still running; skipping");
+      return;
+    }
+    this.inFlight = true;
     try {
       // Wait for bootstrap to complete before running
       await this.bootstrapService.waitForBootstrap();
@@ -28,6 +41,8 @@ export class DispatchJob {
         `Dispatch tick failed`,
         err instanceof Error ? err.stack : String(err),
       );
+    } finally {
+      this.inFlight = false;
     }
   }
 }
