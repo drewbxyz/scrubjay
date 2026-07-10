@@ -6,6 +6,7 @@ import type { AppConfig } from "@/core/config/config.schema";
 import * as schema from "./drizzle.schema";
 import { DrizzleService } from "./drizzle.service";
 import { PG_CONNECTION, PG_POOL } from "./pg-connection";
+import { PoolLifecycle } from "./pool-lifecycle";
 
 const CONNECTION_TIMEOUT_MS = 10_000;
 const IDLE_TIMEOUT_MS = 30_000;
@@ -43,6 +44,7 @@ const MAX_POOL_CONNECTIONS = 10;
       useFactory: (pool: Pool) => drizzle({ client: pool, schema }),
     },
     DrizzleService,
+    PoolLifecycle,
   ],
 })
 export class DrizzleModule {}
