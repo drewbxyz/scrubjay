@@ -5,6 +5,8 @@ upgrade lands on an already-Vitest codebase. Secondary wins: faster test runs vi
 per-worker databases, and two test-related crumbs from `architecture-improvements.md`
 swept along the way._
 
+> **Update (superseded during execution):** `unplugin-swc` was dropped in favor of Vite 8's native oxc transform — this repo's oxc already emits `emitDecoratorMetadata`, and `unplugin-swc` produced a persistent non-silenceable `esbuild`/`oxc` warning. `vitest.config.ts` is intentionally plugin-less; the decorator-metadata canary now guards the native transform. References to `unplugin-swc`/swc below are historical.
+
 ## Decisions (settled in brainstorming)
 
 1. **Per-worker databases** — the integration suite goes parallel instead of porting

@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      exclude: ["src/**/*.spec.ts", "src/testing/**"],
       include: ["src/**/*.ts"],
       provider: "v8",
       reportsDirectory: "./coverage",

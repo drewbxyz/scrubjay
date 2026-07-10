@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Update (superseded during execution):** `unplugin-swc` was dropped in favor of Vite 8's native oxc transform — this repo's oxc already emits `emitDecoratorMetadata`, and `unplugin-swc` produced a persistent non-silenceable `esbuild`/`oxc` warning. `vitest.config.ts` is intentionally plugin-less; the decorator-metadata canary now guards the native transform. References to `unplugin-swc`/swc below are historical.
+
 **Goal:** Replace Jest with Vitest in `apps/scrubjay-discord` — all 23 specs ported (22 kept, 1 deleted), per-worker test databases, Jest deps gone, CI green.
 
 **Architecture:** Vitest with `unplugin-swc` for Nest decorator metadata; one testcontainers Postgres whose migrated `scrubjay_template` database is cloned per Vitest worker (`test_<VITEST_POOL_ID>`), so spec files run in parallel across workers while keeping the existing truncate-per-test pattern within a worker.
