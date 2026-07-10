@@ -48,6 +48,7 @@ describe("DispatchService", () => {
     deactivateChannel: vi.fn(),
     pendingEBirdAlerts: vi.fn(),
     record: vi.fn(),
+    sweepExpired: vi.fn(),
   };
   const senderMock = { send: vi.fn() };
 
@@ -61,6 +62,7 @@ describe("DispatchService", () => {
     alertQueueMock.deactivateChannel.mockReset().mockResolvedValue(1);
     alertQueueMock.pendingEBirdAlerts.mockReset().mockResolvedValue([]);
     alertQueueMock.record.mockReset().mockResolvedValue(undefined);
+    alertQueueMock.sweepExpired.mockReset().mockResolvedValue([]);
     senderMock.send.mockReset().mockResolvedValue(undefined);
 
     service = new DispatchService(
@@ -182,5 +184,45 @@ describe("DispatchService", () => {
 
     expect(alertQueueMock.record).not.toHaveBeenCalled();
     expect(alertQueueMock.deactivateChannel).not.toHaveBeenCalled();
+  });
+
+  it("sweeps expired alerts even when nothing is pending", async () => {
+    const loggerWarnSpy = vi
+      .spyOn(Logger.prototype, "warn")
+      .mockImplementation(() => {});
+    alertQueueMock.sweepExpired.mockResolvedValue([
+      {
+        alertId: "verfly:S9",
+        channelId: "CH1",
+        comName: "Vermilion Flycatcher",
+      },
+    ]);
+
+    await service.dispatchSince(since);
+
+    const SWEEP_FLOOR_MS = 7 * 24 * 60 * 60 * 1000;
+    expect(alertQueueMock.sweepExpired).toHaveBeenCalledWith(
+      since,
+      new Date(since.getTime() - SWEEP_FLOOR_MS),
+    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("verfly:S9"),
+    );
+  });
+
+  it("sweeps after the send loop", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([makeAlert()]);
+    const calls: string[] = [];
+    senderMock.send.mockImplementation(async () => {
+      calls.push("send");
+    });
+    alertQueueMock.sweepExpired.mockImplementation(async () => {
+      calls.push("sweep");
+      return [];
+    });
+
+    await service.dispatchSince(since);
+
+    expect(calls).toEqual(["send", "sweep"]);
   });
 });

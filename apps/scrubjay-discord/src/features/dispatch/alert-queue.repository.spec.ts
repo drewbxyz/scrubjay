@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -182,6 +182,83 @@ describe("AlertQueueRepository", () => {
       for (const row of rows) {
         expect(row.active).toBe(row.channelId === "CH2");
       }
+    });
+  });
+
+  describe("sweepExpiredAlerts", () => {
+    const HOUR = 60 * 60 * 1000;
+
+    it("records expired rows for aged-out undelivered alerts only", async () => {
+      const now = Date.now();
+      const before = new Date(now - 15 * 60 * 1000);
+      const floor = new Date(now - 7 * 24 * HOUR);
+      await seedLocation(db);
+      await seedSubscription(db);
+      // Aged out, undelivered -> expired.
+      await seedObservation(db, {
+        createdAt: new Date(now - HOUR),
+        subId: "S1",
+      });
+      // Aged out but already delivered -> untouched.
+      await seedObservation(db, {
+        createdAt: new Date(now - HOUR),
+        subId: "S2",
+      });
+      await seedDelivery(db, { alertId: "verfly:S2" });
+      // Still inside the dispatch window -> untouched.
+      await seedObservation(db, { createdAt: new Date(now), subId: "S3" });
+      // Older than the floor -> untouched.
+      await seedObservation(db, {
+        createdAt: new Date(now - 8 * 24 * HOUR),
+        subId: "S4",
+      });
+
+      const expired = await repository.sweepExpiredAlerts(before, floor);
+
+      expect(expired).toEqual([
+        {
+          alertId: "verfly:S1",
+          channelId: "CH1",
+          comName: "Vermilion Flycatcher",
+        },
+      ]);
+      const rows = await db.db
+        .select()
+        .from(deliveries)
+        .where(eq(deliveries.status, "expired"));
+      expect(rows).toHaveLength(1);
+      expect(rows[0].alertId).toBe("verfly:S1");
+    });
+
+    it("is idempotent: re-sweeping records nothing new", async () => {
+      const now = Date.now();
+      const before = new Date(now - 15 * 60 * 1000);
+      const floor = new Date(now - 7 * 24 * HOUR);
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedObservation(db, { createdAt: new Date(now - HOUR) });
+
+      await repository.sweepExpiredAlerts(before, floor);
+      const second = await repository.sweepExpiredAlerts(before, floor);
+
+      expect(second).toEqual([]);
+      const rows = await db.db.select().from(deliveries);
+      expect(rows).toHaveLength(1);
+    });
+
+    it("skips filtered species", async () => {
+      const now = Date.now();
+      await seedLocation(db);
+      await seedSubscription(db);
+      await seedFilter(db); // filters "Vermilion Flycatcher" on CH1
+      await seedObservation(db, { createdAt: new Date(now - HOUR) });
+
+      const expired = await repository.sweepExpiredAlerts(
+        new Date(now - 15 * 60 * 1000),
+        new Date(now - 7 * 24 * HOUR),
+      );
+
+      expect(expired).toEqual([]);
     });
   });
 });

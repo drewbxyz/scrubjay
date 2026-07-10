@@ -8,6 +8,9 @@ import {
 import { classifySendError } from "./discord-error";
 import { planEBirdAlerts } from "./ebird-alert.formatter";
 
+/** Sweep scan floor — matches the eBird fetch lookback (back=7). */
+const SWEEP_FLOOR_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * The Dispatch pipeline: turns pending alerts into Discord embeds and
  * records deliveries. Owns the send-then-record protocol for every alert
@@ -28,7 +31,6 @@ export class DispatchService {
 
     if (pending.length === 0) {
       this.logger.debug(`No new alerts since ${since.toISOString()}`);
-      return;
     }
 
     let sentCount = 0;
@@ -47,6 +49,18 @@ export class DispatchService {
 
     if (sentCount > 0) {
       this.logger.log(`Delivered ${sentCount} alerts`);
+    }
+
+    // Alert-loss closure (spec §4): anything that aged out of the dispatch
+    // window without an outcome gets an 'expired' row and a warning.
+    const expired = await this.alertQueue.sweepExpired(
+      since,
+      new Date(since.getTime() - SWEEP_FLOOR_MS),
+    );
+    for (const alert of expired) {
+      this.logger.warn(
+        `Alert ${alert.alertId} (${alert.comName}) for channel ${alert.channelId} expired unsent`,
+      );
     }
   }
 

@@ -3,13 +3,14 @@ import type { DeliveryStatus } from "@/core/drizzle/drizzle.schema";
 import type { DbOrTx } from "@/core/drizzle/drizzle.service";
 import {
   AlertQueueRepository,
+  type ExpiredAlert,
   type PendingEBirdAlert,
   type SubscriptionScope,
 } from "./alert-queue.repository";
 
 const RECORD_BATCH_SIZE = 100;
 
-export type { PendingEBirdAlert, SubscriptionScope };
+export type { ExpiredAlert, PendingEBirdAlert, SubscriptionScope };
 
 export type AlertRef = {
   speciesCode: string;
@@ -67,5 +68,10 @@ export class AlertQueue {
   /** Deactivate a dead channel's subscriptions (spec §2, Unknown Channel). */
   async deactivateChannel(channelId: string): Promise<number> {
     return this.repository.deactivateChannelSubscriptions(channelId);
+  }
+
+  /** Record 'expired' for aged-out undelivered alerts; returns them (spec §4). */
+  async sweepExpired(before: Date, floor: Date): Promise<ExpiredAlert[]> {
+    return this.repository.sweepExpiredAlerts(before, floor);
   }
 }

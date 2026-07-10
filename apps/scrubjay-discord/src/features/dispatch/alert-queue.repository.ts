@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
   type DeliveryStatus,
@@ -50,6 +50,12 @@ export type DeliveryRow = {
   detail?: string | null;
   kind: "ebird";
   status: DeliveryStatus;
+};
+
+export type ExpiredAlert = {
+  alertId: string;
+  channelId: string;
+  comName: string;
 };
 
 /** The `alert_id` stored in `deliveries`: `speciesCode:subId`. */
@@ -134,6 +140,52 @@ export class AlertQueueRepository {
         })),
       )
       .onConflictDoNothing();
+  }
+
+  /**
+   * Record 'expired' outcomes for alerts that were once pending and never got
+   * one: created before the dispatch window opened (<= before) but after the
+   * scan floor, still subscribed and unfiltered, with no delivery row. The
+   * select-then-insert pair is not atomic, but the caller runs inside
+   * DispatchJob's inFlight guard and the unique index makes replays no-ops.
+   * Returns the swept alerts so the caller can log each loss (spec §4).
+   */
+  async sweepExpiredAlerts(before: Date, floor: Date): Promise<ExpiredAlert[]> {
+    const expired = await this.drizzle.db
+      .select({
+        alertId: alertIdExpr,
+        channelId: channelEBirdSubscriptions.channelId,
+        comName: observations.comName,
+      })
+      .from(observations)
+      .innerJoin(locations, eq(locations.id, observations.locId))
+      .innerJoin(channelEBirdSubscriptions, this.subscriptionMatch())
+      .leftJoin(filteredSpecies, this.filteredSpeciesMatch())
+      .leftJoin(deliveries, this.priorDeliveryMatch())
+      .where(
+        and(
+          gt(observations.createdAt, floor),
+          lte(observations.createdAt, before),
+          isNull(filteredSpecies.channelId),
+          isNull(deliveries.alertId),
+        ),
+      );
+
+    if (expired.length === 0) return [];
+
+    await this.drizzle.db
+      .insert(deliveries)
+      .values(
+        expired.map((row) => ({
+          alertId: row.alertId,
+          channelId: row.channelId,
+          kind: "ebird" as const,
+          status: "expired" as const,
+        })),
+      )
+      .onConflictDoNothing();
+
+    return expired;
   }
 
   /**
