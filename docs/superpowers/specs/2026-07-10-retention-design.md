@@ -114,12 +114,22 @@ observation_date > ?`). The existing EXPLAIN smoke test in
 
 ### 5. Ride-along: LIMIT on the pending read
 
-`buildPendingEBirdAlertsQuery` gains `ORDER BY observations.created_at ASC
-LIMIT 500` (module const). Oldest-first drain; overflow lands next tick
-(the 15-minute window gives ~15 attempts before the existing expired sweep
-records the loss with warnings — the designed loss path from 1.3).
-`backfillDeliveries` and `sweepExpiredAlerts` stay unlimited: both must see
-the complete set to be correct.
+`buildPendingEBirdAlertsQuery` gains `ORDER BY observations.created_at ASC,
+observations.species_code, observations.sub_id LIMIT 500` (module const).
+Oldest-first drain with a deterministic tiebreaker — bulk-inserted rows share
+`created_at`, and an arbitrary truncation boundary would make the LIMIT test
+flaky. Overflow lands next tick (the 15-minute window gives ~15 attempts
+before the existing expired sweep records the loss with warnings — the
+designed loss path from 1.3). `backfillDeliveries` and `sweepExpiredAlerts`
+stay unlimited: both must see the complete set to be correct.
+
+LIMIT is invisible to correctness: `recentlyConfirmed` is a correlated
+EXISTS against the whole table (unaffected by outer truncation), and
+deferred rows write no delivery row, so they stay pending. The only
+observable effect is cosmetic: a truncation boundary can split one
+channel × species × location embed group (`ebird-alert.formatter.ts:18`)
+across two ticks during a >500-alert burst — two smaller messages instead
+of one.
 
 ## Error handling
 
