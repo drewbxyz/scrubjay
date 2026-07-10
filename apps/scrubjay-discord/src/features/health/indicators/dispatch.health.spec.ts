@@ -26,4 +26,24 @@ describe("DispatchHealthIndicator", () => {
     });
     expect(result.dispatch?.lastTickAt).toEqual(expect.any(String));
   });
+
+  it("is still up when recentDeliveryCounts rejects", async () => {
+    const state = new HealthStateService();
+    const repository = {
+      recentDeliveryCounts: vi.fn().mockRejectedValue(new Error("db down")),
+    };
+    const indicator = new DispatchHealthIndicator(
+      new HealthIndicatorService(),
+      state,
+      repository as unknown as HealthRepository,
+    );
+
+    const result = await indicator.isHealthy("dispatch");
+
+    expect(result.dispatch).toMatchObject({
+      countsError: expect.any(String),
+      last24h: null,
+      status: "up",
+    });
+  });
 });

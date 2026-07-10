@@ -14,6 +14,7 @@ import { IngestHealthIndicator } from "./indicators/ingest.health";
 describe("HealthController", () => {
   let app: INestApplication;
   const executeMock = vi.fn();
+  const recentDeliveryCountsMock = vi.fn();
 
   const startApp = async () => {
     const moduleRef = await Test.createTestingModule({
@@ -27,14 +28,7 @@ describe("HealthController", () => {
         { provide: DrizzleService, useValue: { db: { execute: executeMock } } },
         {
           provide: HealthRepository,
-          useValue: {
-            recentDeliveryCounts: vi.fn().mockResolvedValue({
-              expired: 0,
-              failed: 0,
-              sent: 0,
-              suppressed: 0,
-            }),
-          },
+          useValue: { recentDeliveryCounts: recentDeliveryCountsMock },
         },
       ],
     }).compile();
@@ -47,6 +41,13 @@ describe("HealthController", () => {
 
   beforeEach(() => {
     executeMock.mockReset();
+    recentDeliveryCountsMock.mockReset();
+    recentDeliveryCountsMock.mockResolvedValue({
+      expired: 0,
+      failed: 0,
+      sent: 0,
+      suppressed: 0,
+    });
     // Terminus logs failed checks; keep test output quiet.
     vi.spyOn(Logger.prototype, "error").mockImplementation(() => {});
   });
@@ -77,6 +78,19 @@ describe("HealthController", () => {
 
   it("returns 503 when the DB ping fails", async () => {
     executeMock.mockRejectedValue(new Error("connection refused"));
+    const url = await startApp();
+
+    const res = await fetch(`${url}/health`);
+    const body = await res.json();
+
+    expect(res.status).toBe(503);
+    expect(body.status).toBe("error");
+    expect(body.error.database.status).toBe("down");
+  });
+
+  it("returns 503 with a structured database error when both the DB ping and the dispatch counts query fail", async () => {
+    executeMock.mockRejectedValue(new Error("connection refused"));
+    recentDeliveryCountsMock.mockRejectedValue(new Error("db down"));
     const url = await startApp();
 
     const res = await fetch(`${url}/health`);
