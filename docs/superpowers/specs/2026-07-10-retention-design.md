@@ -115,20 +115,32 @@ observation_date > ?`). The existing EXPLAIN smoke test in
 ### 5. Ride-along: LIMIT on the pending read
 
 `buildPendingEBirdAlertsQuery` gains `ORDER BY observations.created_at ASC,
-observations.species_code, observations.sub_id LIMIT 500` (module const).
-Oldest-first drain with a deterministic tiebreaker — bulk-inserted rows share
-`created_at`, and an arbitrary truncation boundary would make the LIMIT test
-flaky. Overflow lands next tick (the 15-minute window gives ~15 attempts
-before the existing expired sweep records the loss with warnings — the
-designed loss path from 1.3). `backfillDeliveries` and `sweepExpiredAlerts`
-stay unlimited: both must see the complete set to be correct.
+observations.species_code, observations.sub_id,
+channel_ebird_subscriptions.channel_id LIMIT 5000` (module const).
+Oldest-first drain with a fully deterministic tiebreaker: a bulk-ingested
+batch shares one `created_at` (transaction timestamp), and fan-out produces
+one row per subscribed channel that differs *only* by `channel_id` — the
+channel column must therefore be part of the sort key or the truncation
+boundary is arbitrary.
+
+Sizing (revised 2026-07-10 after fan-out review): pending rows are
+observation × subscribed channel. The owner's realistic burst — 30
+observations hitting 250 state-subscribed channels — is 7,500 rows sharing
+one `createdAt`; at LIMIT 500 that equals the window's total send capacity
+(15 ticks × 500) with zero slack, so any stalled tick expires the tail.
+At 5,000 the burst clears in ~2 ticks with ~10x headroom, and the LIMIT
+bites only on genuine pathology. Overflow lands next tick (the 15-minute
+window gives ~15 attempts before the existing expired sweep records the
+loss with warnings — the designed loss path from 1.3). `backfillDeliveries`
+and `sweepExpiredAlerts` stay unlimited: both must see the complete set to
+be correct.
 
 LIMIT is invisible to correctness: `recentlyConfirmed` is a correlated
 EXISTS against the whole table (unaffected by outer truncation), and
 deferred rows write no delivery row, so they stay pending. The only
 observable effect is cosmetic: a truncation boundary can split one
 channel × species × location embed group (`ebird-alert.formatter.ts:18`)
-across two ticks during a >500-alert burst — two smaller messages instead
+across two ticks during a >5,000-alert burst — two smaller messages instead
 of one.
 
 ## Error handling

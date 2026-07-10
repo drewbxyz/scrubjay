@@ -16,7 +16,7 @@
 - Deliveries prune cutoff: `sent_at < now() − 30 days` (hard floor is 8 days; 30 is the ops-history decision).
 - Locations: orphans only, always pruned AFTER observations (FK is `onDelete: cascade` from locations → observations).
 - Batch size 10,000; each batch commits independently (no wrapping transaction).
-- Pending read: `ORDER BY created_at ASC, species_code, sub_id LIMIT 500`. `backfillDeliveries` and `sweepExpiredAlerts` stay unlimited.
+- Pending read: `ORDER BY created_at ASC, species_code, sub_id, channel_id LIMIT 5000`. `channel_id` is load-bearing: fan-out rows differ only by channel, so without it the truncation boundary is arbitrary. `backfillDeliveries` and `sweepExpiredAlerts` stay unlimited.
 - All commands run from `apps/scrubjay-discord/`. Tests: `npx vitest run <file>` (real Postgres via testcontainers global setup — first run is slow). Verify types with `npm run check-types`.
 - Code style: match existing files — sorted object keys, `@/` path aliases, comments only for constraints code can't show.
 
@@ -101,11 +101,11 @@ git commit -m "feat(scrubjay-discord): index the recentlyConfirmed probe (backlo
 
 **Interfaces:**
 - Consumes: nothing from other tasks.
-- Produces: exported `const PENDING_ALERT_LIMIT = 500` from `alert-queue.repository.ts`; `buildPendingEBirdAlertsQuery` now returns at most that many rows, oldest `createdAt` first.
+- Produces: exported `const PENDING_ALERT_LIMIT = 5_000` from `alert-queue.repository.ts`; `buildPendingEBirdAlertsQuery` now returns at most that many rows, oldest `createdAt` first.
 
 - [ ] **Step 1: Write the failing test**
 
-In `alert-queue.repository.spec.ts`, add a top-level `describe` (sibling of the existing ones). Seed in ONE bulk insert — 510 per-row inserts would be slow:
+In `alert-queue.repository.spec.ts`, add a top-level `describe` (sibling of the existing ones). Seed with chunked bulk inserts — per-row inserts would be slow, and one insert of 5,010 rows × 15 columns would blow Postgres's 65,535 bind-parameter cap:
 
 ```ts
 import { observations } from "@/core/drizzle/drizzle.schema"; // extend existing import
@@ -137,7 +137,9 @@ describe("pending read bound", () => {
       subId: `S${String(i).padStart(4, "0")}`,
       videoCount: 0,
     }));
-    await db.db.insert(observations).values(rows);
+    for (let i = 0; i < rows.length; i += 1000) {
+      await db.db.insert(observations).values(rows.slice(i, i + 1000));
+    }
 
     const pending = await repository.pendingEBirdAlerts();
 
@@ -172,11 +174,14 @@ Below `CONFIRMED_WINDOW_DAYS`, add:
 /**
  * Per-tick cap on the pending read. Overflow stays pending (no delivery row
  * is written) and drains oldest-first on later ticks; the 15-minute window
- * gives ~15 attempts before the expired sweep records the loss. The
- * species/sub tiebreaker makes truncation deterministic — bulk-ingested
- * rows share created_at.
+ * gives ~15 attempts before the expired sweep records the loss. Sized for
+ * fan-out — pending rows are observation × subscribed channel, and a
+ * realistic statewide burst (30 observations × 250 channels = 7,500 rows)
+ * must clear well inside the window; the cap should bite only on genuine
+ * pathology. The tiebreakers make truncation deterministic: a bulk-ingested
+ * batch shares one created_at, and fan-out rows differ only by channel_id.
  */
-export const PENDING_ALERT_LIMIT = 500;
+export const PENDING_ALERT_LIMIT = 5_000;
 ```
 
 In `buildPendingEBirdAlertsQuery`, after `.where(this.pendingWhere(since))` append:
@@ -186,6 +191,7 @@ In `buildPendingEBirdAlertsQuery`, after `.where(this.pendingWhere(since))` appe
         asc(observations.createdAt),
         asc(observations.speciesCode),
         asc(observations.subId),
+        asc(channelEBirdSubscriptions.channelId),
       )
       .limit(PENDING_ALERT_LIMIT);
 ```
@@ -833,8 +839,9 @@ In `.superpowers/notes/improvements.md`, replace the `### 2.3 No retention / unb
 - Daily retention cron (04:17): observations pruned at createdAt < now-14d
   (floor set by eBird back=7 resurrection risk), deliveries at sentAt <
   now-30d, orphan locations last. Batched deletes, 10k per pass.
-- Pending read now ORDER BY created_at, species_code, sub_id LIMIT 500;
-  backfill and expired sweep deliberately stay unlimited.
+- Pending read now ORDER BY created_at, species_code, sub_id, channel_id
+  LIMIT 5000 (sized for 250-channel fan-out bursts); backfill and expired
+  sweep deliberately stay unlimited.
 - Added observations(species_code, location_id, observation_date) index
   for the recentlyConfirmed probe (migration 0006).
 - Spec: docs/superpowers/specs/2026-07-10-retention-design.md
