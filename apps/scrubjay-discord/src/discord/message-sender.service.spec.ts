@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { DiscordAPIError } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MessageSenderService } from "./message-sender.service";
 
@@ -7,6 +8,17 @@ describe("MessageSenderService", () => {
 
   const fetchMock = vi.fn();
   const clientMock = { channels: { fetch: fetchMock } } as unknown as Client;
+
+  function apiError(code: number): DiscordAPIError {
+    return new DiscordAPIError(
+      { code, message: "boom" },
+      code,
+      404,
+      "POST",
+      "https://discord.com/api",
+      { body: undefined, files: undefined },
+    );
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,5 +51,12 @@ describe("MessageSenderService", () => {
       "Channel channel-1 not found or not sendable",
     );
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("propagates a DiscordAPIError (Unknown Channel) so the classifier can see the code", async () => {
+    const err = apiError(10003);
+    fetchMock.mockRejectedValue(err);
+
+    await expect(sender.send("gone", "hi")).rejects.toBe(err);
   });
 });
