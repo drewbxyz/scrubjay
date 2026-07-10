@@ -316,5 +316,61 @@ describe("AlertQueueRepository", () => {
         expect(returned.has(`S${String(i).padStart(4, "0")}`)).toBe(false);
       }
     });
+
+    it("breaks a genuine channel_id tie at the truncation boundary deterministically", async () => {
+      // Two locations in the same state, different counties: L001 (the
+      // county-specific subscription's home) and L002 (matched only by the
+      // wildcard subscription). CH1 is scoped to L001's county only; CH2's
+      // "*" county matches both. Filler observations all live at L002, so
+      // only CH2 fans out to them (one pending row each) — CH1 never sees
+      // them. The single newest observation lives at L001, so it fans out
+      // to BOTH channels: two pending rows sharing createdAt, speciesCode,
+      // and subId, differing only by channelId. That is the genuine tie the
+      // orderBy's channel_id key must break.
+      await seedLocation(db);
+      await seedLocation(db, {
+        county: "Other County",
+        countyCode: "US-CA-999",
+        id: "L002",
+      });
+      await seedSubscription(db, { channelId: "CH1", countyCode: "US-CA-085" });
+      await seedSubscription(db, { channelId: "CH2", countyCode: "*" });
+
+      const base = Date.now();
+      const fillerCount = PENDING_ALERT_LIMIT - 1;
+      const fillerRows = Array.from({ length: fillerCount }, (_, i) => ({
+        audioCount: 0,
+        comName: "Vermilion Flycatcher",
+        createdAt: new Date(base - (fillerCount - i) * 1000),
+        hasComments: false,
+        howMany: 1,
+        locId: "L002",
+        obsDt: new Date(),
+        obsReviewed: false,
+        obsValid: false,
+        photoCount: 0,
+        presenceNoted: false,
+        sciName: "Pyrocephalus rubinus",
+        speciesCode: "verfly",
+        subId: `S${String(i).padStart(4, "0")}`,
+        videoCount: 0,
+      }));
+      for (let i = 0; i < fillerRows.length; i += 1000) {
+        await db.db.insert(observations).values(fillerRows.slice(i, i + 1000));
+      }
+      // Newest observation — created after every filler row — fans out to
+      // both CH1 and CH2, producing the tie at the tail of the sort order.
+      await seedObservation(db, {
+        createdAt: new Date(base),
+        locId: "L001",
+        subId: "SNEW",
+      });
+
+      const pending = await repository.pendingEBirdAlerts();
+
+      expect(pending).toHaveLength(PENDING_ALERT_LIMIT);
+      const newestRows = pending.filter((alert) => alert.subId === "SNEW");
+      expect(newestRows.map((alert) => alert.channelId)).toEqual(["CH1"]);
+    });
   });
 });
