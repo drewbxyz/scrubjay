@@ -52,12 +52,12 @@ export class BootstrapService implements OnModuleInit {
       }
     }
 
-    // If marking pre-existing alerts fails, let bootstrap reject: a crashed
+    // If recording pre-existing alerts fails, let bootstrap reject: a crashed
     // startup beats dispatching a burst of stale alerts (B6).
     const pending = await this.alertQueue.pendingEBirdAlerts();
-    await this.alertQueue.markSent(pending);
+    await this.alertQueue.record(pending, "suppressed");
     this.logger.log(
-      `Marked ${pending.length} pre-existing alerts as sent (bootstrap mode).`,
+      `Suppressed ${pending.length} pre-existing alerts (bootstrap mode).`,
     );
 
     this.logger.log("Startup population complete.");

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { DeliveryStatus } from "@/core/drizzle/drizzle.schema";
 import type { DbOrTx } from "@/core/drizzle/drizzle.service";
 import {
   AlertQueueRepository,
@@ -6,11 +7,11 @@ import {
   type SubscriptionScope,
 } from "./alert-queue.repository";
 
-const MARK_SENT_BATCH_SIZE = 100;
+const RECORD_BATCH_SIZE = 100;
 
 export type { PendingEBirdAlert, SubscriptionScope };
 
-export type SentAlert = {
+export type AlertRef = {
   speciesCode: string;
   subId: string;
   channelId: string;
@@ -31,15 +32,22 @@ export class AlertQueue {
   }
 
   /**
-   * Record alerts as sent. Idempotent (unique on kind+alertId+channelId);
-   * owns the alertId format — callers never build it.
+   * Record a terminal outcome for alerts. Idempotent (unique on
+   * kind+alertId+channelId); owns the alertId format — callers never build it.
+   * Every status is terminal: any delivery row excludes the alert from pending.
    */
-  async markSent(alerts: SentAlert[]): Promise<void> {
-    for (let i = 0; i < alerts.length; i += MARK_SENT_BATCH_SIZE) {
-      const batch = alerts.slice(i, i + MARK_SENT_BATCH_SIZE).map((alert) => ({
+  async record(
+    alerts: AlertRef[],
+    status: DeliveryStatus,
+    detail?: string,
+  ): Promise<void> {
+    for (let i = 0; i < alerts.length; i += RECORD_BATCH_SIZE) {
+      const batch = alerts.slice(i, i + RECORD_BATCH_SIZE).map((alert) => ({
         alertId: `${alert.speciesCode}:${alert.subId}`,
         channelId: alert.channelId,
+        detail: detail ?? null,
         kind: "ebird" as const,
+        status,
       }));
       await this.repository.insertDeliveries(batch);
     }

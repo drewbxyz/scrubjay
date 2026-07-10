@@ -45,6 +45,7 @@ describe("AlertQueueRepository", () => {
           alertId: `${alert.speciesCode}:${alert.subId}`,
           channelId: alert.channelId,
           kind: "ebird" as const,
+          status: "sent" as const,
         })),
       );
       await db.db.execute(sql`ANALYZE`);
@@ -125,6 +126,7 @@ describe("AlertQueueRepository", () => {
         "verfly:S002",
       ]);
       expect(rows.every((r) => r.kind === "ebird")).toBe(true);
+      expect(rows.every((row) => row.status === "suppressed")).toBe(true);
     });
 
     it("backfills only the given Subscription, leaving others pending", async () => {

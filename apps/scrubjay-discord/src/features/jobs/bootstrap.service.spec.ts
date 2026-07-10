@@ -9,7 +9,7 @@ describe("BootstrapService", () => {
   let service: BootstrapService;
 
   const ebirdServiceMock = { ingestRegion: vi.fn() };
-  const alertQueueMock = { markSent: vi.fn(), pendingEBirdAlerts: vi.fn() };
+  const alertQueueMock = { pendingEBirdAlerts: vi.fn(), record: vi.fn() };
   const sourcesMock = { getEBirdSources: vi.fn() };
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe("BootstrapService", () => {
     ebirdServiceMock.ingestRegion.mockResolvedValue(3);
     sourcesMock.getEBirdSources.mockResolvedValue(["US-CA"]);
     alertQueueMock.pendingEBirdAlerts.mockResolvedValue([]);
-    alertQueueMock.markSent.mockResolvedValue(undefined);
+    alertQueueMock.record.mockResolvedValue(undefined);
 
     service = new BootstrapService(
       ebirdServiceMock as unknown as IngestService,
@@ -38,6 +38,7 @@ describe("BootstrapService", () => {
     await service.onModuleInit();
 
     await expect(service.waitForBootstrap()).resolves.toBeUndefined();
+    expect(alertQueueMock.record).toHaveBeenCalledWith([], "suppressed");
   });
 
   it("tolerates per-region ingest failures", async () => {
@@ -49,8 +50,8 @@ describe("BootstrapService", () => {
     await expect(service.waitForBootstrap()).resolves.toBeUndefined();
   });
 
-  it("does not unblock jobs when markSent fails (B6)", async () => {
-    alertQueueMock.markSent.mockRejectedValue(new Error("db down"));
+  it("does not unblock jobs when record fails (B6)", async () => {
+    alertQueueMock.record.mockRejectedValue(new Error("db down"));
 
     await expect(service.onModuleInit()).rejects.toThrow("db down");
 

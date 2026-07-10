@@ -2,8 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { MessageSenderService } from "@/discord/message-sender.service";
 import {
   AlertQueue,
+  type AlertRef,
   type PendingEBirdAlert,
-  type SentAlert,
 } from "./alert-queue.service";
 import { planEBirdAlerts } from "./ebird-alert.formatter";
 
@@ -30,12 +30,12 @@ export class DispatchService {
       return;
     }
 
-    const sent: SentAlert[] = [];
+    const sent: AlertRef[] = [];
 
     for (const plan of planEBirdAlerts(pending)) {
       try {
         await this.sender.send(plan.channelId, plan.message);
-        sent.push(...plan.alerts.map(toSentAlert));
+        sent.push(...plan.alerts.map(toAlertRef));
       } catch (err) {
         this.logger.error(
           `Send failed for channel ${plan.channelId}; alerts stay pending`,
@@ -44,7 +44,7 @@ export class DispatchService {
       }
     }
 
-    await this.alertQueue.markSent(sent);
+    await this.alertQueue.record(sent, "sent");
 
     if (sent.length > 0) {
       this.logger.log(`Marked ${sent.length} alerts as delivered`);
@@ -52,7 +52,7 @@ export class DispatchService {
   }
 }
 
-function toSentAlert(alert: PendingEBirdAlert): SentAlert {
+function toAlertRef(alert: PendingEBirdAlert): AlertRef {
   return {
     channelId: alert.channelId,
     speciesCode: alert.speciesCode,

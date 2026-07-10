@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
+  type DeliveryStatus,
   deliveries,
   filteredSpecies,
   locations,
@@ -46,7 +47,9 @@ export type PendingEBirdAlert = {
 export type DeliveryRow = {
   alertId: string;
   channelId: string;
+  detail?: string | null;
   kind: "ebird";
+  status: DeliveryStatus;
 };
 
 /** The `alert_id` stored in `deliveries`: `speciesCode:subId`. */
@@ -102,7 +105,15 @@ export class AlertQueueRepository {
 
     await db
       .insert(deliveries)
-      .values(pending.map((row) => ({ ...row, kind: "ebird" as const })))
+      .values(
+        pending.map((row) => ({
+          ...row,
+          kind: "ebird" as const,
+          // Backfilled alerts were never actually sent — record them as
+          // suppressed so delivery stats only count real sends.
+          status: "suppressed" as const,
+        })),
+      )
       .onConflictDoNothing();
   }
 

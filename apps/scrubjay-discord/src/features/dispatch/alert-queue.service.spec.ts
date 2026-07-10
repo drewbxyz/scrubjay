@@ -183,11 +183,12 @@ describe("AlertQueue", () => {
     });
   });
 
-  describe("markSent", () => {
+  describe("record", () => {
     it("records a delivery with alertId speciesCode:subId and kind ebird", async () => {
-      await queue.markSent([
-        { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
-      ]);
+      await queue.record(
+        [{ channelId: "CH1", speciesCode: "verfly", subId: "S001" }],
+        "sent",
+      );
 
       const rows = await db.db.select().from(deliveries);
 
@@ -196,6 +197,7 @@ describe("AlertQueue", () => {
         alertId: "verfly:S001",
         channelId: "CH1",
         kind: "ebird",
+        status: "sent",
       });
     });
 
@@ -204,8 +206,8 @@ describe("AlertQueue", () => {
         { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
       ];
 
-      await queue.markSent(alerts);
-      await queue.markSent(alerts);
+      await queue.record(alerts, "sent");
+      await queue.record(alerts, "sent");
 
       expect(await db.db.select().from(deliveries)).toHaveLength(1);
     });
@@ -217,7 +219,7 @@ describe("AlertQueue", () => {
         subId: `S${i}`,
       }));
 
-      await queue.markSent(alerts);
+      await queue.record(alerts, "sent");
 
       expect(await db.db.select().from(deliveries)).toHaveLength(250);
     });
@@ -227,7 +229,7 @@ describe("AlertQueue", () => {
       await seedObservation(db);
       await seedSubscription(db);
 
-      await queue.markSent(await queue.pendingEBirdAlerts());
+      await queue.record(await queue.pendingEBirdAlerts(), "sent");
 
       expect(await queue.pendingEBirdAlerts()).toHaveLength(0);
     });

@@ -32,7 +32,7 @@ function makeAlert(
 describe("DispatchService", () => {
   let service: DispatchService;
 
-  const alertQueueMock = { markSent: vi.fn(), pendingEBirdAlerts: vi.fn() };
+  const alertQueueMock = { pendingEBirdAlerts: vi.fn(), record: vi.fn() };
   const senderMock = { send: vi.fn() };
 
   const since = new Date("2026-07-08T00:00:00Z");
@@ -43,7 +43,7 @@ describe("DispatchService", () => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
 
     alertQueueMock.pendingEBirdAlerts.mockReset().mockResolvedValue([]);
-    alertQueueMock.markSent.mockReset().mockResolvedValue(undefined);
+    alertQueueMock.record.mockReset().mockResolvedValue(undefined);
     senderMock.send.mockReset().mockResolvedValue(undefined);
 
     service = new DispatchService(
@@ -66,7 +66,7 @@ describe("DispatchService", () => {
     await service.dispatchSince(since);
 
     expect(senderMock.send).not.toHaveBeenCalled();
-    expect(alertQueueMock.markSent).not.toHaveBeenCalled();
+    expect(alertQueueMock.record).not.toHaveBeenCalled();
   });
 
   it("sends one message per plan and records every sent alert", async () => {
@@ -79,12 +79,15 @@ describe("DispatchService", () => {
     await service.dispatchSince(since);
 
     expect(senderMock.send).toHaveBeenCalledTimes(2);
-    expect(alertQueueMock.markSent).toHaveBeenCalledTimes(1);
-    expect(alertQueueMock.markSent).toHaveBeenCalledWith([
-      { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
-      { channelId: "CH1", speciesCode: "verfly", subId: "S002" },
-      { channelId: "CH2", speciesCode: "verfly", subId: "S001" },
-    ]);
+    expect(alertQueueMock.record).toHaveBeenCalledTimes(1);
+    expect(alertQueueMock.record).toHaveBeenCalledWith(
+      [
+        { channelId: "CH1", speciesCode: "verfly", subId: "S001" },
+        { channelId: "CH1", speciesCode: "verfly", subId: "S002" },
+        { channelId: "CH2", speciesCode: "verfly", subId: "S001" },
+      ],
+      "sent",
+    );
   });
 
   it("leaves alerts pending when their send fails, still recording the rest", async () => {
@@ -96,8 +99,9 @@ describe("DispatchService", () => {
 
     await service.dispatchSince(since);
 
-    expect(alertQueueMock.markSent).toHaveBeenCalledWith([
-      { channelId: "CH2", speciesCode: "verfly", subId: "S001" },
-    ]);
+    expect(alertQueueMock.record).toHaveBeenCalledWith(
+      [{ channelId: "CH2", speciesCode: "verfly", subId: "S001" }],
+      "sent",
+    );
   });
 });
