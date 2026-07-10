@@ -1,17 +1,27 @@
 import type { ArgumentsHost } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  type MockInstance,
+  vi,
+} from "vitest";
 import { UserFacingError } from "../errors/user-facing.error";
 import { CommandExceptionFilter } from "./command-exception.filter";
 
 describe("CommandExceptionFilter", () => {
   let filter: CommandExceptionFilter;
-  let loggerErrorSpy: jest.SpyInstance;
+  let loggerErrorSpy: MockInstance;
 
   const interaction = {
     deferred: false,
-    editReply: jest.fn(),
+    editReply: vi.fn(),
     replied: false,
-    reply: jest.fn(),
+    reply: vi.fn(),
   };
 
   const host = {
@@ -20,10 +30,12 @@ describe("CommandExceptionFilter", () => {
   } as unknown as ArgumentsHost;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     interaction.deferred = false;
     interaction.replied = false;
-    loggerErrorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
+    loggerErrorSpy = vi
+      .spyOn(Logger.prototype, "error")
+      .mockImplementation(() => {});
     filter = new CommandExceptionFilter();
   });
 
@@ -42,7 +54,7 @@ describe("CommandExceptionFilter", () => {
   it("hides other errors behind a generic message", async () => {
     await filter.catch(new Error("connection refused"), host);
 
-    const { content } = (interaction.reply as jest.Mock).mock.calls[0][0];
+    const { content } = (interaction.reply as Mock).mock.calls[0][0];
     expect(content).toBe("Something went wrong running that command.");
     expect(content).not.toContain("connection refused");
   });
@@ -89,7 +101,7 @@ describe("CommandExceptionFilter", () => {
 
   it("swallows a rejection from editReply instead of throwing", async () => {
     interaction.deferred = true;
-    (interaction.editReply as jest.Mock).mockRejectedValueOnce(
+    (interaction.editReply as Mock).mockRejectedValueOnce(
       new Error("Unknown interaction"),
     );
 

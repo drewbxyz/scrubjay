@@ -1,4 +1,13 @@
 import { Logger } from "@nestjs/common";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from "vitest";
 import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
 import type { BootstrapService } from "./bootstrap.service";
@@ -6,16 +15,18 @@ import { IngestJob } from "./ingest.job";
 
 describe("IngestJob", () => {
   let job: IngestJob;
-  let loggerErrorSpy: jest.SpyInstance;
+  let loggerErrorSpy: MockInstance;
 
-  const ebirdMock = { ingestRegion: jest.fn() };
-  const bootstrapMock = { waitForBootstrap: jest.fn() };
-  const sourcesMock = { getEBirdSources: jest.fn() };
+  const ebirdMock = { ingestRegion: vi.fn() };
+  const bootstrapMock = { waitForBootstrap: vi.fn() };
+  const sourcesMock = { getEBirdSources: vi.fn() };
 
   beforeEach(() => {
-    loggerErrorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
-    jest.spyOn(Logger.prototype, "debug").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    loggerErrorSpy = vi
+      .spyOn(Logger.prototype, "error")
+      .mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "debug").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
 
     ebirdMock.ingestRegion.mockReset();
     bootstrapMock.waitForBootstrap.mockReset();
@@ -33,7 +44,7 @@ describe("IngestJob", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("ingests every subscribed region", async () => {

@@ -1,6 +1,16 @@
 import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Test, type TestingModule } from "@nestjs/testing";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  type MockInstance,
+  vi,
+} from "vitest";
 import { EBirdFetcher } from "./ebird.fetcher";
 import type { EBirdObservation } from "./ebird.schema";
 
@@ -36,8 +46,8 @@ const validObservation: EBirdObservation = {
 };
 
 function mockFetchResponse(body: unknown, ok = true, status = 200) {
-  global.fetch = jest.fn().mockResolvedValue({
-    json: jest.fn().mockResolvedValue(body),
+  global.fetch = vi.fn().mockResolvedValue({
+    json: vi.fn().mockResolvedValue(body),
     ok,
     status,
     statusText: ok ? "OK" : "Internal Server Error",
@@ -46,10 +56,10 @@ function mockFetchResponse(body: unknown, ok = true, status = 200) {
 
 describe("EBirdFetcher", () => {
   let fetcher: EBirdFetcher;
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: MockInstance;
   const originalFetch = global.fetch;
   const configServiceMock = {
-    get: jest.fn(),
+    get: vi.fn(),
   } as unknown as ConfigService<never, true>;
 
   beforeEach(async () => {
@@ -63,11 +73,11 @@ describe("EBirdFetcher", () => {
     }).compile();
     fetcher = module.get<EBirdFetcher>(EBirdFetcher);
 
-    jest.clearAllMocks();
-    warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    vi.clearAllMocks();
+    warnSpy = vi.spyOn(Logger.prototype, "warn").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
 
-    (configServiceMock.get as unknown as jest.Mock).mockImplementation(
+    (configServiceMock.get as unknown as Mock).mockImplementation(
       (key: string) => {
         if (key === "EBIRD_BASE_URL") return "https://api.ebird.org";
         if (key === "EBIRD_TOKEN") return "token";
@@ -78,7 +88,7 @@ describe("EBirdFetcher", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("sends a request with configured base URL and token and returns validated rows", async () => {
@@ -86,7 +96,7 @@ describe("EBirdFetcher", () => {
 
     const result = await fetcher.fetchRareObservations("US-WA");
 
-    const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const [url, options] = (global.fetch as Mock).mock.calls[0];
     expect(url.toString()).toBe(
       "https://api.ebird.org/v2/data/obs/US-WA/recent/notable?back=7&detail=full",
     );

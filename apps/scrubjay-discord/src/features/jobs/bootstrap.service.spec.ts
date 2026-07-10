@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
@@ -7,14 +8,14 @@ import { BootstrapService } from "./bootstrap.service";
 describe("BootstrapService", () => {
   let service: BootstrapService;
 
-  const ebirdServiceMock = { ingestRegion: jest.fn() };
-  const alertQueueMock = { markSent: jest.fn(), pendingEBirdAlerts: jest.fn() };
-  const sourcesMock = { getEBirdSources: jest.fn() };
+  const ebirdServiceMock = { ingestRegion: vi.fn() };
+  const alertQueueMock = { markSent: vi.fn(), pendingEBirdAlerts: vi.fn() };
+  const sourcesMock = { getEBirdSources: vi.fn() };
 
   beforeEach(() => {
-    jest.spyOn(Logger.prototype, "error").mockImplementation();
-    jest.spyOn(Logger.prototype, "warn").mockImplementation();
-    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    vi.spyOn(Logger.prototype, "error").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "warn").mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => {});
 
     ebirdServiceMock.ingestRegion.mockResolvedValue(3);
     sourcesMock.getEBirdSources.mockResolvedValue(["US-CA"]);
@@ -29,8 +30,8 @@ describe("BootstrapService", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    jest.useRealTimers();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("unblocks jobs after a successful bootstrap", async () => {
@@ -54,23 +55,23 @@ describe("BootstrapService", () => {
     await expect(service.onModuleInit()).rejects.toThrow("db down");
 
     // The flag must not be set — a failed bootstrap must not unblock dispatch.
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const wait = service.waitForBootstrap();
     const assertion = expect(wait).rejects.toThrow(
       "Bootstrap timed out after 5 minutes",
     );
-    jest.advanceTimersByTime(5 * 60 * 1000);
+    vi.advanceTimersByTime(5 * 60 * 1000);
     await assertion;
   });
 
   it("rejects waitForBootstrap with a descriptive timeout error (B7)", async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     const wait = service.waitForBootstrap();
     const assertion = expect(wait).rejects.toThrow(
       "Bootstrap timed out after 5 minutes",
     );
-    jest.advanceTimersByTime(5 * 60 * 1000);
+    vi.advanceTimersByTime(5 * 60 * 1000);
 
     await assertion;
   });

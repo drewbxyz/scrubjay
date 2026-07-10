@@ -1,18 +1,29 @@
 import { Logger } from "@nestjs/common";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from "vitest";
 import type { DispatchService } from "@/features/dispatch/dispatch.service";
 import type { BootstrapService } from "./bootstrap.service";
 import { DispatchJob } from "./dispatch.job";
 
 describe("DispatchJob", () => {
   let job: DispatchJob;
-  let loggerErrorSpy: jest.SpyInstance;
+  let loggerErrorSpy: MockInstance;
 
-  const dispatcherMock = { dispatchSince: jest.fn() };
-  const bootstrapMock = { waitForBootstrap: jest.fn() };
+  const dispatcherMock = { dispatchSince: vi.fn() };
+  const bootstrapMock = { waitForBootstrap: vi.fn() };
 
   beforeEach(() => {
-    loggerErrorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
-    jest.spyOn(Logger.prototype, "debug").mockImplementation();
+    loggerErrorSpy = vi
+      .spyOn(Logger.prototype, "error")
+      .mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, "debug").mockImplementation(() => {});
 
     dispatcherMock.dispatchSince.mockClear();
     bootstrapMock.waitForBootstrap.mockClear();
@@ -27,7 +38,7 @@ describe("DispatchJob", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("dispatches when bootstrap is complete", async () => {
