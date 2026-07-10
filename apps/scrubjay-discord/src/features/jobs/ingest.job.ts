@@ -29,11 +29,17 @@ export class IngestJob {
           const inserted = await this.ingest.ingestRegion(region);
           this.logger.log(`Region ${region}: ${inserted} alerts ingested`);
         } catch (err) {
-          this.logger.error(`Failed to ingest ${region}: ${err}`);
+          this.logger.error(
+            `Failed to ingest ${region}`,
+            err instanceof Error ? err.stack : String(err),
+          );
         }
       }
     } catch (err) {
-      this.logger.error(`Ingest tick failed: ${err}`);
+      this.logger.error(
+        `Ingest tick failed`,
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

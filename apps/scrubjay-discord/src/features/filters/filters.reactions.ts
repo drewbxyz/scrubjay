@@ -22,7 +22,10 @@ export class FiltersReactions {
       try {
         user = await user.fetch();
       } catch (error) {
-        this.logger.error(`Error fetching user: ${error}`);
+        this.logger.error(
+          `Error fetching user`,
+          error instanceof Error ? error.stack : String(error),
+        );
         return;
       }
     }
@@ -33,7 +36,10 @@ export class FiltersReactions {
       try {
         reaction = await reaction.fetch();
       } catch (error) {
-        this.logger.error(`Error fetching reaction: ${error}`);
+        this.logger.error(
+          `Error fetching reaction`,
+          error instanceof Error ? error.stack : String(error),
+        );
         return;
       }
     }

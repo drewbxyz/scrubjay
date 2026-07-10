@@ -24,7 +24,10 @@ export class DispatchJob {
       );
       await this.dispatch.dispatchSince(since);
     } catch (err) {
-      this.logger.error(`Dispatch tick failed: ${err}`);
+      this.logger.error(
+        `Dispatch tick failed`,
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

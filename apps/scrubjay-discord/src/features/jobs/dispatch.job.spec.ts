@@ -64,6 +64,7 @@ describe("DispatchJob", () => {
     await expect(job.run()).resolves.toBeUndefined();
 
     expect(loggerErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Dispatch tick failed"),
       expect.stringContaining("channel gone"),
     );
   });

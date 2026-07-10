@@ -22,7 +22,10 @@ export class IngestService {
         `Fetched ${rawObservations.length} records from ${regionCode}`,
       );
     } catch (err) {
-      this.logger.error(`Error fetching observations: ${err}`);
+      this.logger.error(
+        `Error fetching observations from ${regionCode}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       return 0;
     }
 

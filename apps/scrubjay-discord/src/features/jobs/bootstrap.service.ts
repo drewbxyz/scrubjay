@@ -45,7 +45,10 @@ export class BootstrapService implements OnModuleInit {
         const count = await this.ingestService.ingestRegion(region);
         this.logger.log(`Populated ${count} observations for ${region}`);
       } catch (err) {
-        this.logger.error(`Population failed for ${region}: ${err}`);
+        this.logger.error(
+          `Population failed for ${region}`,
+          err instanceof Error ? err.stack : String(err),
+        );
       }
     }
 

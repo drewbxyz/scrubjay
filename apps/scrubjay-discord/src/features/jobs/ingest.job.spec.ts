@@ -63,6 +63,7 @@ describe("IngestJob", () => {
     expect(ebirdMock.ingestRegion).toHaveBeenCalledTimes(2);
     expect(loggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Failed to ingest US-CA"),
+      expect.any(String),
     );
   });
 
@@ -74,6 +75,7 @@ describe("IngestJob", () => {
     expect(ebirdMock.ingestRegion).not.toHaveBeenCalled();
     expect(loggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Ingest tick failed"),
+      expect.any(String),
     );
   });
 
@@ -87,6 +89,7 @@ describe("IngestJob", () => {
     expect(sourcesMock.getEBirdSources).not.toHaveBeenCalled();
     expect(loggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Ingest tick failed"),
+      expect.any(String),
     );
   });
 });

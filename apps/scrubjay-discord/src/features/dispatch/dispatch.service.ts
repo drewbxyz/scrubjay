@@ -38,7 +38,8 @@ export class DispatchService {
         sent.push(...plan.alerts.map(toSentAlert));
       } catch (err) {
         this.logger.error(
-          `Send failed for channel ${plan.channelId}; alerts stay pending: ${err}`,
+          `Send failed for channel ${plan.channelId}; alerts stay pending`,
+          err instanceof Error ? err.stack : String(err),
         );
       }
     }
