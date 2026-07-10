@@ -11,7 +11,6 @@ export function createNecordOptions(
       : false,
     intents: [
       GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],

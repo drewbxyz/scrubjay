@@ -15,13 +15,19 @@ describe("validateConfig", () => {
     expect(config.PORT).toBe(3000);
     expect(config.EBIRD_BASE_URL).toBe("https://api.ebird.org/");
     expect(config.DEVELOPMENT_GUILD_ID).toBeUndefined();
-    expect(config.DISCORD_CLIENT_ID).toBeUndefined();
   });
 
   it("coerces PORT from string to number", () => {
     const config = validateConfig({ ...validEnv, PORT: "8080" });
 
     expect(config.PORT).toBe(8080);
+  });
+
+  it("rejects a PORT outside 1-65535", () => {
+    expect(() => validateConfig({ ...validEnv, PORT: "70000" })).toThrow(
+      "PORT",
+    );
+    expect(() => validateConfig({ ...validEnv, PORT: "0" })).toThrow("PORT");
   });
 
   it.each([
@@ -51,11 +57,9 @@ describe("validateConfig", () => {
     const config = validateConfig({
       ...validEnv,
       DEVELOPMENT_GUILD_ID: "guild-123",
-      DISCORD_CLIENT_ID: "client-456",
     });
 
     expect(config.DEVELOPMENT_GUILD_ID).toBe("guild-123");
-    expect(config.DISCORD_CLIENT_ID).toBe("client-456");
   });
 
   it("defaults FILTER_REACTION_THRESHOLD to 3", () => {
