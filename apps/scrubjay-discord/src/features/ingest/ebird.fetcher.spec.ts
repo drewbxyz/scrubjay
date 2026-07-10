@@ -160,6 +160,30 @@ describe("EBirdFetcher", () => {
     );
   });
 
+  it("skips rows whose howMany exceeds the int4 range", async () => {
+    const tooLarge = { ...validObservation, howMany: 2_147_483_648 };
+    mockFetchResponse([validObservation, tooLarge]);
+
+    const result = await fetcher.fetchRareObservations("US-WA");
+
+    expect(result).toEqual([validObservation]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Skipping malformed observation at index 1"),
+    );
+  });
+
+  it("skips rows with a negative howMany", async () => {
+    const negative = { ...validObservation, howMany: -1 };
+    mockFetchResponse([validObservation, negative]);
+
+    const result = await fetcher.fetchRareObservations("US-WA");
+
+    expect(result).toEqual([validObservation]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Skipping malformed observation at index 1"),
+    );
+  });
+
   it("accepts eBird's native space-separated obsDt format", async () => {
     const native = { ...validObservation, obsDt: "2020-01-21 16:35" };
     mockFetchResponse([native]);

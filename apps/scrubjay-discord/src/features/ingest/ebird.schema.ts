@@ -9,7 +9,7 @@ export const RawEBirdObservationSchema = z.object({
   firstName: z.string().optional().default(""),
   hasComments: z.boolean(),
   hasRichMedia: z.boolean(),
-  howMany: z.number().int().optional(),
+  howMany: z.number().int().min(0).max(2_147_483_647).optional(),
   lastName: z.string().optional().default(""),
   lat: z.number(),
   lng: z.number(),
