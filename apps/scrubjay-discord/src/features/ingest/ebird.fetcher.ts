@@ -7,6 +7,9 @@ import {
   RawEBirdObservationSchema,
 } from "./ebird.schema";
 
+/** Abort an eBird request that has not responded within this window. */
+const FETCH_TIMEOUT_MS = 10_000;
+
 @Injectable()
 export class EBirdFetcher {
   private readonly logger = new Logger(EBirdFetcher.name);
@@ -24,13 +27,34 @@ export class EBirdFetcher {
       this.configService.get("EBIRD_BASE_URL", { infer: true }),
     );
 
-    const response = await fetch(url, {
-      headers: {
-        "X-eBirdApiToken": this.configService.get("EBIRD_TOKEN", {
-          infer: true,
-        }),
-      },
-    });
+    // Fresh AbortController per request; clear the timer in `finally` so a
+    // fast response releases it immediately (unlike AbortSignal.timeout()).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          "X-eBirdApiToken": this.configService.get("EBIRD_TOKEN", {
+            infer: true,
+          }),
+        },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      // fetch rejects with an AbortError on timeout; surface a clear message
+      // instead of a bare "AbortError" in the logs.
+      if (controller.signal.aborted) {
+        throw new Error(
+          `eBird request timed out after ${FETCH_TIMEOUT_MS}ms for ${regionCode}`,
+        );
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+
     if (!response.ok) {
       throw new Error(
         `eBird API returned ${response.status} ${response.statusText}`,

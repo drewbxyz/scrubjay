@@ -135,4 +135,48 @@ describe("EBirdFetcher", () => {
       expect.stringContaining("Skipping malformed observation at index 1"),
     );
   });
+
+  it("rejects with a clear timeout message when the request hangs", async () => {
+    vi.useFakeTimers();
+    try {
+      // A never-resolving fetch that rejects only once its signal aborts,
+      // mirroring how the real fetch reacts to AbortController.abort().
+      global.fetch = vi.fn(
+        (_url: unknown, options: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            options.signal.addEventListener("abort", () => {
+              const abortError = new Error("The operation was aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
+            });
+          }),
+      ) as unknown as typeof fetch;
+
+      const pending = fetcher.fetchRareObservations("US-WA");
+      const assertion = expect(pending).rejects.toThrow(
+        "eBird request timed out after 10000ms for US-WA",
+      );
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears the timeout timer on a fast successful response", async () => {
+    vi.useFakeTimers();
+    try {
+      const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
+      mockFetchResponse([validObservation]);
+
+      const result = await fetcher.fetchRareObservations("US-WA");
+
+      expect(result).toEqual([validObservation]);
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
