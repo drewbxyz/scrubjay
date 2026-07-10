@@ -136,6 +136,40 @@ describe("EBirdFetcher", () => {
     );
   });
 
+  it("skips rows with a fractional howMany", async () => {
+    const fractional = { ...validObservation, howMany: 2.5 };
+    mockFetchResponse([validObservation, fractional]);
+
+    const result = await fetcher.fetchRareObservations("US-WA");
+
+    expect(result).toEqual([validObservation]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Skipping malformed observation at index 1"),
+    );
+  });
+
+  it("skips rows whose obsDt cannot be parsed as a date", async () => {
+    const badDate = { ...validObservation, obsDt: "not-a-date" };
+    mockFetchResponse([validObservation, badDate]);
+
+    const result = await fetcher.fetchRareObservations("US-WA");
+
+    expect(result).toEqual([validObservation]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Skipping malformed observation at index 1"),
+    );
+  });
+
+  it("accepts eBird's native space-separated obsDt format", async () => {
+    const native = { ...validObservation, obsDt: "2020-01-21 16:35" };
+    mockFetchResponse([native]);
+
+    const result = await fetcher.fetchRareObservations("US-WA");
+
+    expect(result).toEqual([native]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it("rejects with a clear timeout message when the request hangs", async () => {
     vi.useFakeTimers();
     try {

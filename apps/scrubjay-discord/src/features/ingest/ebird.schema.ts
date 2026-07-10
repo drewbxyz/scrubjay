@@ -9,14 +9,19 @@ export const RawEBirdObservationSchema = z.object({
   firstName: z.string().optional().default(""),
   hasComments: z.boolean(),
   hasRichMedia: z.boolean(),
-  howMany: z.number().optional(),
+  howMany: z.number().int().optional(),
   lastName: z.string().optional().default(""),
   lat: z.number(),
   lng: z.number(),
   locationPrivate: z.boolean(),
   locId: z.string(),
   locName: z.string(),
-  obsDt: z.string(),
+  obsDt: z
+    .string()
+    .refine(
+      (s) => !Number.isNaN(Date.parse(s)),
+      "unparseable observation date",
+    ),
   obsId: z.string(),
   obsReviewed: z.boolean(),
   obsValid: z.boolean(),
