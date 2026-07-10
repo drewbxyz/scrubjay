@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { DispatchService } from "@/features/dispatch/dispatch.service";
+import { HealthStateService } from "@/features/health/health-state.service";
 import { BootstrapService } from "./bootstrap.service";
 
 @Injectable()
@@ -18,6 +19,7 @@ export class DispatchJob {
   constructor(
     private readonly dispatch: DispatchService,
     private readonly bootstrapService: BootstrapService,
+    private readonly healthState: HealthStateService,
   ) {}
 
   @Cron("*/1 * * * *")
@@ -30,6 +32,8 @@ export class DispatchJob {
     try {
       // Wait for bootstrap to complete before running
       await this.bootstrapService.waitForBootstrap();
+
+      this.healthState.recordDispatchTick();
 
       const since = new Date(Date.now() - 15 * 60 * 1000);
       this.logger.debug(

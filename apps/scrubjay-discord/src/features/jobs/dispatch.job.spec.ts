@@ -9,6 +9,7 @@ import {
   vi,
 } from "vitest";
 import type { DispatchService } from "@/features/dispatch/dispatch.service";
+import type { HealthStateService } from "@/features/health/health-state.service";
 import type { BootstrapService } from "./bootstrap.service";
 import { DispatchJob } from "./dispatch.job";
 
@@ -18,6 +19,7 @@ describe("DispatchJob", () => {
 
   const dispatcherMock = { dispatchSince: vi.fn() };
   const bootstrapMock = { waitForBootstrap: vi.fn() };
+  const healthStateMock = { recordDispatchTick: vi.fn() };
 
   beforeEach(() => {
     loggerErrorSpy = vi
@@ -27,6 +29,7 @@ describe("DispatchJob", () => {
 
     dispatcherMock.dispatchSince.mockClear();
     bootstrapMock.waitForBootstrap.mockClear();
+    healthStateMock.recordDispatchTick.mockReset();
 
     dispatcherMock.dispatchSince.mockResolvedValue(undefined);
     bootstrapMock.waitForBootstrap.mockResolvedValue(undefined);
@@ -34,6 +37,7 @@ describe("DispatchJob", () => {
     job = new DispatchJob(
       dispatcherMock as unknown as DispatchService,
       bootstrapMock as unknown as BootstrapService,
+      healthStateMock as unknown as HealthStateService,
     );
   });
 
@@ -90,5 +94,19 @@ describe("DispatchJob", () => {
     dispatcherMock.dispatchSince.mockResolvedValue(undefined);
     await job.run();
     expect(dispatcherMock.dispatchSince).toHaveBeenCalledTimes(2);
+  });
+
+  it("records a dispatch tick in health state", async () => {
+    await job.run();
+
+    expect(healthStateMock.recordDispatchTick).toHaveBeenCalledOnce();
+  });
+
+  it("does not record a tick when bootstrap fails", async () => {
+    bootstrapMock.waitForBootstrap.mockRejectedValue(new Error("timeout"));
+
+    await job.run();
+
+    expect(healthStateMock.recordDispatchTick).not.toHaveBeenCalled();
   });
 });
