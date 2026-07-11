@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { metrics } from "@opentelemetry/api";
 import { EBirdFetcher } from "./ebird.fetcher";
 import type { EBirdObservation } from "./ebird.schema";
 import { EBirdTransformer } from "./ebird.transformer";
@@ -7,6 +8,12 @@ import { ObservationRepository } from "./observation.repository";
 @Injectable()
 export class IngestService {
   private readonly logger = new Logger(IngestService.name);
+
+  private readonly records = metrics
+    .getMeter("scrubjay-discord")
+    .createCounter("scrubjay.ingest.records", {
+      description: "eBird observations upserted per ingest, by region",
+    });
 
   constructor(
     private readonly fetcher: EBirdFetcher,
@@ -40,6 +47,8 @@ export class IngestService {
       );
       return 0;
     }
+
+    this.records.add(batch.length, { region: regionCode });
 
     return batch.length;
   }

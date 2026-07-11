@@ -1,12 +1,23 @@
 import { Logger } from "@nestjs/common";
 import { Test, type TestingModule } from "@nestjs/testing";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { registerMetricHarness } from "@/testing/otel-harness";
 import { EBirdFetcher } from "./ebird.fetcher";
 import type { EBirdObservation } from "./ebird.schema";
 import { EBirdTransformer } from "./ebird.transformer";
 import { IngestService } from "./ingest.service";
 import type { Observation } from "./observation.interface";
 import { ObservationRepository } from "./observation.repository";
+
+const metricHarness = registerMetricHarness();
 
 describe("IngestService", () => {
   let service: IngestService;
@@ -100,6 +111,37 @@ describe("IngestService", () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+  });
+
+  afterAll(async () => {
+    await metricHarness.shutdown();
+  });
+
+  it("does not count records when the fetch fails", async () => {
+    fetcherMock.fetchRareObservations.mockRejectedValue(
+      new Error("ebird down"),
+    );
+
+    await service.ingestRegion("US-WA");
+
+    const records = await metricHarness.collect("scrubjay.ingest.records");
+    expect(records).toBeUndefined();
+  });
+
+  it("counts ingested records per region", async () => {
+    fetcherMock.fetchRareObservations.mockResolvedValue([rawObservation]);
+    transformerMock.transformObservations.mockReturnValue([
+      { some: "obs" },
+      { some: "obs" },
+    ] as unknown as Observation[]);
+    repoMock.upsertObservations.mockResolvedValue(undefined);
+
+    await service.ingestRegion("US-WA");
+
+    const records = await metricHarness.collect("scrubjay.ingest.records");
+    const point = records?.dataPoints.at(-1);
+    expect(point?.value).toBe(2);
+    expect(point?.attributes.region).toBe("US-WA");
   });
 
   it("returns zero and skips transform when fetching observations fails", async () => {
