@@ -3,6 +3,15 @@ import type { NodeSDK } from "@opentelemetry/sdk-node";
 let sdk: NodeSDK | null = null;
 
 /**
+ * True if `host` is `domain` or a subdomain of it, matched on a label
+ * boundary. Avoids the substring trap where `evil-discord.com` or
+ * `discord.com.evil.com` would slip past a naive `includes()`.
+ */
+function isHost(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+/**
  * Env-gated OpenTelemetry bootstrap. OTEL_EXPORTER_OTLP_ENDPOINT is the
  * single on-switch; every other knob rides the standard OTEL_* env vars,
  * which the SDK and OTLP exporters read themselves. The SDK is require()d
@@ -55,10 +64,15 @@ export function startOtel(): boolean {
         // peer.service, which such generators key on) — and names them
         // cleanly ("ebird"/"discord") instead of raw hostnames.
         requestHook: (span, request) => {
-          const origin = request.origin ?? "";
-          if (origin.includes("ebird.org")) {
+          let host: string;
+          try {
+            host = new URL(request.origin).hostname;
+          } catch {
+            return;
+          }
+          if (isHost(host, "ebird.org")) {
             span.setAttribute("peer.service", "ebird");
-          } else if (origin.includes("discord.com")) {
+          } else if (isHost(host, "discord.com")) {
             span.setAttribute("peer.service", "discord");
           }
         },
