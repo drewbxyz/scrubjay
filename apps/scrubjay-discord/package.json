@@ -64,5 +64,5 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:watch": "vitest"
   },
-  "version": "0.2.5"
+  "version": "0.2.6"
 }
