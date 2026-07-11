@@ -39,7 +39,12 @@ export class JobTelemetry {
   }
 
   private record(job: string, status: "error" | "ok", startedAt: number): void {
-    this.duration.record(performance.now() - startedAt, { job, status });
-    this.runs.add(1, { job, status });
+    // Attribute key is `job_name`, not `job`: `job` is a reserved Prometheus
+    // target label (set to service.name by OTLP ingestion), so a `job`
+    // attribute collides with it and every series ends up job="scrubjay-discord"
+    // instead of the cron name.
+    const attrs = { job_name: job, status };
+    this.duration.record(performance.now() - startedAt, attrs);
+    this.runs.add(1, attrs);
   }
 }

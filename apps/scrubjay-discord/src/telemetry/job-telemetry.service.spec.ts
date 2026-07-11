@@ -31,7 +31,7 @@ describe("JobTelemetry", () => {
     expect(result).toBe(42);
     const runs = await metricHarness.collect("scrubjay.job.runs");
     expect(runs?.dataPoints[0]?.attributes).toEqual({
-      job: "dispatch",
+      job_name: "dispatch",
       status: "ok",
     });
     const duration = await metricHarness.collect("scrubjay.job.duration");
@@ -59,10 +59,10 @@ describe("JobTelemetry", () => {
 
     const runs = await metricHarness.collect("scrubjay.job.runs");
     const ingestRun = runs?.dataPoints.find(
-      (point) => point.attributes.job === "ingest",
+      (point) => point.attributes.job_name === "ingest",
     );
     expect(ingestRun?.attributes).toEqual({
-      job: "ingest",
+      job_name: "ingest",
       status: "error",
     });
     const [span] = traceHarness.exporter.getFinishedSpans();
