@@ -6,6 +6,7 @@ import {
   type AlertRef,
   type PendingEBirdAlert,
 } from "./alert-queue.service";
+import { ALERT_OUTCOMES_COUNTER } from "./alert-metrics";
 import { classifySendError } from "./discord-error";
 import { planEBirdAlerts } from "./ebird-alert.formatter";
 
@@ -28,8 +29,9 @@ export class DispatchService {
 
   private readonly alerts = metrics
     .getMeter("scrubjay-discord")
-    .createCounter("scrubjay.dispatch.alerts", {
-      description: "Alert delivery outcomes by status",
+    .createCounter(ALERT_OUTCOMES_COUNTER.name, {
+      description: ALERT_OUTCOMES_COUNTER.description,
+      unit: ALERT_OUTCOMES_COUNTER.unit,
     });
 
   private readonly logger = new Logger(DispatchService.name);
@@ -78,6 +80,7 @@ export class DispatchService {
         `Alert ${alert.alertId} (${alert.comName}) for channel ${alert.channelId} expired unsent`,
       );
     }
+    this.alerts.add(expired.length, { status: "expired" });
   }
 
   private async handleSendFailure(

@@ -143,3 +143,10 @@ in the JSON whose name differs.
 If any name above doesn't match the metric browser, edit
 `observability/dashboards/critical-health.json` directly (each panel's
 `targets[].expr`), re-import, and confirm the panel now shows data.
+
+**Note on `scrubjay_dispatch_alerts_total` by `status`:** `transient` counts
+retry attempts, not unique alerts — one alert failing transiently over K
+ticks increments `transient` K times and may later also increment `sent`.
+`sent + failed + transient + expired` is therefore NOT a partition of unique
+alerts. A stacked or percentage panel over `status` should treat
+`transient`/`expired` as attempt-rate signals, not shares of a total.

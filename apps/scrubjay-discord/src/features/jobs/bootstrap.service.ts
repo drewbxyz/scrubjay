@@ -1,5 +1,6 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { metrics } from "@opentelemetry/api";
+import { ALERT_OUTCOMES_COUNTER } from "@/features/dispatch/alert-metrics";
 import { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import { IngestService } from "@/features/ingest/ingest.service";
 import { SourcesRepository } from "@/features/sources/sources.repository";
@@ -12,8 +13,9 @@ import { SourcesRepository } from "@/features/sources/sources.repository";
 export class BootstrapService implements OnModuleInit {
   private readonly alerts = metrics
     .getMeter("scrubjay-discord")
-    .createCounter("scrubjay.dispatch.alerts", {
-      description: "Alert delivery outcomes by status",
+    .createCounter(ALERT_OUTCOMES_COUNTER.name, {
+      description: ALERT_OUTCOMES_COUNTER.description,
+      unit: ALERT_OUTCOMES_COUNTER.unit,
     });
 
   private readonly logger = new Logger(BootstrapService.name);

@@ -117,10 +117,11 @@ describe("IngestService", () => {
     await metricHarness.shutdown();
   });
 
-  // Must run before any other test in this file records to scrubjay.ingest.records:
-  // the shared DELTA-temporality harness only exports a metric once it has a new
-  // delta, so a pending count from an earlier test would surface on this flush and
-  // make `collect` return a stale non-undefined value (see otel-harness.ts).
+  // These three must run before any other test in this file records to
+  // scrubjay.ingest.records: the shared DELTA-temporality harness only
+  // exports a metric once it has a new delta, so a pending count from an
+  // earlier test would surface on this flush and inflate/change the value
+  // (see otel-harness.ts).
   it("does not count records when the fetch fails", async () => {
     fetcherMock.fetchRareObservations.mockRejectedValue(
       new Error("ebird down"),
@@ -145,6 +146,19 @@ describe("IngestService", () => {
     const records = await metricHarness.collect("scrubjay.ingest.records");
     const point = records?.dataPoints.at(-1);
     expect(point?.value).toBe(2);
+    expect(point?.attributes.region).toBe("US-WA");
+  });
+
+  it("counts a zero-value point for a region that fetched nothing", async () => {
+    fetcherMock.fetchRareObservations.mockResolvedValue([]);
+    transformerMock.transformObservations.mockReturnValue([]);
+    repoMock.upsertObservations.mockResolvedValue(undefined);
+
+    await service.ingestRegion("US-WA");
+
+    const records = await metricHarness.collect("scrubjay.ingest.records");
+    const point = records?.dataPoints.at(-1);
+    expect(point?.value).toBe(0);
     expect(point?.attributes.region).toBe("US-WA");
   });
 

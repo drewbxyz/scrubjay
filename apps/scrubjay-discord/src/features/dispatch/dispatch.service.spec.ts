@@ -95,8 +95,8 @@ describe("DispatchService", () => {
     await metricHarness.shutdown();
   });
 
-  // These three must run before any other test in this file dispatches a
-  // sent/failed/transient alert: the shared DELTA-temporality harness only
+  // These four must run before any other test in this file dispatches a
+  // sent/failed/transient/expired alert: the shared DELTA-temporality harness only
   // exports a metric once it has a new delta, so pending counts from an
   // earlier test would surface on this flush and inflate the value (see
   // otel-harness.ts).
@@ -127,6 +127,17 @@ describe("DispatchService", () => {
     await service.dispatchSince(since);
 
     expect(await alertCount("transient")).toBe(1);
+  });
+
+  it("counts expired alerts swept off the queue", async () => {
+    alertQueueMock.sweepExpired.mockResolvedValue([
+      { alertId: "verfly:S9", channelId: "CH1", comName: "Vermilion Flycatcher" },
+      { alertId: "verfly:S10", channelId: "CH1", comName: "Vermilion Flycatcher" },
+    ]);
+
+    await service.dispatchSince(since);
+
+    expect(await alertCount("expired")).toBe(2);
   });
 
   it("asks the queue for alerts pending since the cutoff", async () => {

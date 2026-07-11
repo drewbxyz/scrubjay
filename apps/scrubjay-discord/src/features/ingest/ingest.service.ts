@@ -13,6 +13,7 @@ export class IngestService {
     .getMeter("scrubjay-discord")
     .createCounter("scrubjay.ingest.records", {
       description: "eBird observations upserted per ingest, by region",
+      unit: "{record}",
     });
 
   constructor(
