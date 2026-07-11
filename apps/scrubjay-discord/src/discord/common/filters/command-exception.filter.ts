@@ -5,10 +5,22 @@ import {
   Logger,
 } from "@nestjs/common";
 import { MessageFlags } from "discord.js";
-import { NecordArgumentsHost, type SlashCommandContext } from "necord";
+import {
+  type ButtonContext,
+  NecordArgumentsHost,
+  type SlashCommandContext,
+  type StringSelectContext,
+} from "necord";
 import { UserFacingError } from "../errors/user-facing.error";
 
 const GENERIC_MESSAGE = "Something went wrong running that command.";
+
+/**
+ * This filter guards @SlashCommand, @Button, and @StringSelect handlers on the
+ * subscription commands, so the recovered context is any of the three — all
+ * carry a repliable interaction.
+ */
+type CommandContext = SlashCommandContext | ButtonContext | StringSelectContext;
 
 @Catch()
 export class CommandExceptionFilter implements ExceptionFilter {
@@ -16,7 +28,7 @@ export class CommandExceptionFilter implements ExceptionFilter {
 
   async catch(exception: unknown, host: ArgumentsHost) {
     const [interaction] =
-      NecordArgumentsHost.create(host).getContext<SlashCommandContext>();
+      NecordArgumentsHost.create(host).getContext<CommandContext>();
 
     const error =
       exception instanceof Error ? exception : new Error(String(exception));

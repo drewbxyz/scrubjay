@@ -1,6 +1,7 @@
 import { Injectable, UseFilters } from "@nestjs/common";
 import {
   InteractionContextType,
+  type MessageComponentInteraction,
   MessageFlags,
   PermissionFlagsBits,
 } from "discord.js";
@@ -28,6 +29,9 @@ const SubscriptionCommand = createCommandGroupDecorator({
   description: "Manage ScrubJay subscriptions for a channel",
   name: "subscription",
 });
+
+const PERMISSION_DENIED =
+  "You need the Administrator permission to manage subscriptions.";
 
 @Injectable()
 @SubscriptionCommand()
@@ -68,19 +72,20 @@ export class SubscriptionsCommands {
     @Context() [interaction]: SlashCommandContext,
     @Options() { region }: SubscribeEBirdOptions,
   ) {
+    // Defer before the DB round-trip so a slow query can't blow the 3s
+    // interaction-token deadline (parity with `add`).
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const didUnsubscribe = await this.subscriptions.unsubscribe(
       interaction.channelId,
       region,
     );
     if (didUnsubscribe) {
-      return interaction.reply({
+      return interaction.editReply({
         content: `Unsubscribed to eBird observations for ${region}`,
-        flags: [MessageFlags.Ephemeral],
       });
     }
-    return interaction.reply({
+    return interaction.editReply({
       content: `Channel is not subscribed to eBird observations for ${region}`,
-      flags: [MessageFlags.Ephemeral],
     });
   }
 
@@ -91,14 +96,27 @@ export class SubscriptionsCommands {
   public async onSubscriptionList(
     @Context() [interaction]: SlashCommandContext,
   ) {
+    // Defer (ephemeral) before the DB read so the list query can't miss the
+    // 3s token deadline; the followup inherits the ephemeral flag.
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const subs = await this.subscriptions.listSubscriptions(
       interaction.channelId,
     );
 
-    return interaction.reply({
-      ...buildSubscriptionListView(subs, 0),
-      flags: [MessageFlags.Ephemeral],
-    });
+    return interaction.editReply(buildSubscriptionListView(subs, 0));
+  }
+
+  /**
+   * Component interactions are matched by customId and bypass the slash
+   * command's defaultMemberPermissions gate. The list view is ephemeral so in
+   * practice only the invoking admin can click, but re-check explicitly as
+   * defense-in-depth.
+   */
+  private isAdmin(interaction: MessageComponentInteraction): boolean {
+    return (
+      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ??
+      false
+    );
   }
 
   /** Prev/Next buttons: re-render the requested page in place. */
@@ -107,6 +125,12 @@ export class SubscriptionsCommands {
     @Context() [interaction]: ButtonContext,
     @ComponentParam("page") page: string,
   ) {
+    if (!this.isAdmin(interaction)) {
+      return interaction.reply({
+        content: PERMISSION_DENIED,
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
     const subs = await this.subscriptions.listSubscriptions(
       interaction.channelId,
     );
@@ -123,6 +147,12 @@ export class SubscriptionsCommands {
     @ComponentParam("page") page: string,
     @SelectedStrings() [region]: string[],
   ) {
+    if (!this.isAdmin(interaction)) {
+      return interaction.reply({
+        content: PERMISSION_DENIED,
+        flags: [MessageFlags.Ephemeral],
+      });
+    }
     await interaction.deferUpdate();
     await this.subscriptions.unsubscribe(interaction.channelId, region);
 

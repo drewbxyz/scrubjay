@@ -22,12 +22,15 @@ describe("SubscriptionsCommands", () => {
     deferReply: vi.fn(),
     deferUpdate: vi.fn(),
     editReply: vi.fn(),
+    // Component handlers re-check admin; default the mock to an admin caller.
+    memberPermissions: { has: vi.fn(() => true) },
     reply: vi.fn(),
     update: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    interaction.memberPermissions.has.mockReturnValue(true);
     serviceMock.listSubscriptions.mockResolvedValue([]);
     commands = new SubscriptionsCommands(
       serviceMock as unknown as SubscriptionsService,
@@ -88,24 +91,71 @@ describe("SubscriptionsCommands", () => {
     });
   });
 
+  describe("onSubscriptionRemove", () => {
+    const remove = (region: string) =>
+      commands.onSubscriptionRemove(
+        [interaction] as unknown as SlashCommandContext,
+        { region } as SubscribeEBirdOptions,
+      );
+
+    it("defers the reply before doing subscription work", async () => {
+      const order: string[] = [];
+      interaction.deferReply.mockImplementation(async () => {
+        order.push("defer");
+      });
+      serviceMock.unsubscribe.mockImplementation(async () => {
+        order.push("unsubscribe");
+        return true;
+      });
+
+      await remove("US-WA");
+
+      expect(order).toEqual(["defer", "unsubscribe"]);
+    });
+
+    it("confirms removal via editReply", async () => {
+      serviceMock.unsubscribe.mockResolvedValue(true);
+
+      await remove("US-WA");
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "Unsubscribed to eBird observations for US-WA",
+        }),
+      );
+    });
+
+    it("reports when the channel was not subscribed", async () => {
+      serviceMock.unsubscribe.mockResolvedValue(false);
+
+      await remove("US-WA");
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("not subscribed"),
+        }),
+      );
+    });
+  });
+
   describe("onSubscriptionList", () => {
     const list = () =>
       commands.onSubscriptionList([
         interaction,
       ] as unknown as SlashCommandContext);
 
-    it("replies ephemerally with the first page for the channel", async () => {
+    it("defers ephemerally, then edits in the first page for the channel", async () => {
       serviceMock.listSubscriptions.mockResolvedValue([
         { countyCode: "US-WA-033", stateCode: "US-WA" },
       ]);
 
       await list();
 
+      expect(interaction.deferReply).toHaveBeenCalledWith({
+        flags: [MessageFlags.Ephemeral],
+      });
       expect(serviceMock.listSubscriptions).toHaveBeenCalledWith("CH1");
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ flags: [MessageFlags.Ephemeral] }),
-      );
-      const payload = interaction.reply.mock.calls[0][0];
+      const payload = interaction.editReply.mock.calls[0][0];
       expect(payload.components).toHaveLength(1); // select row only (single page)
     });
 
@@ -114,12 +164,18 @@ describe("SubscriptionsCommands", () => {
 
       await list();
 
-      const payload = interaction.reply.mock.calls[0][0];
+      const payload = interaction.editReply.mock.calls[0][0];
       expect(payload.components).toEqual([]);
     });
   });
 
   describe("onSubscriptionListNav", () => {
+    const nav = (page: string) =>
+      commands.onSubscriptionListNav(
+        [interaction] as unknown as ButtonContext,
+        page,
+      );
+
     it("re-renders the requested page in place", async () => {
       const subs = Array.from({ length: 15 }, (_, i) => ({
         countyCode: `US-WA-${String(i).padStart(3, "0")}`,
@@ -127,17 +183,33 @@ describe("SubscriptionsCommands", () => {
       }));
       serviceMock.listSubscriptions.mockResolvedValue(subs);
 
-      await commands.onSubscriptionListNav(
-        [interaction] as unknown as ButtonContext,
-        "1",
-      );
+      await nav("1");
 
       expect(serviceMock.listSubscriptions).toHaveBeenCalledWith("CH1");
       expect(interaction.update).toHaveBeenCalledTimes(1);
     });
+
+    it("refuses a non-admin caller without touching the service", async () => {
+      interaction.memberPermissions.has.mockReturnValue(false);
+
+      await nav("1");
+
+      expect(serviceMock.listSubscriptions).not.toHaveBeenCalled();
+      expect(interaction.update).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith(
+        expect.objectContaining({ flags: [MessageFlags.Ephemeral] }),
+      );
+    });
   });
 
   describe("onSubscriptionListRemove", () => {
+    const removeSelected = (page: string, region: string) =>
+      commands.onSubscriptionListRemove(
+        [interaction] as unknown as StringSelectContext,
+        page,
+        [region],
+      );
+
     it("defers, unsubscribes the selected region, then re-renders the page", async () => {
       const order: string[] = [];
       interaction.deferUpdate.mockImplementation(async () => {
@@ -148,15 +220,23 @@ describe("SubscriptionsCommands", () => {
         return true;
       });
 
-      await commands.onSubscriptionListRemove(
-        [interaction] as unknown as StringSelectContext,
-        "0",
-        ["US-WA-033"],
-      );
+      await removeSelected("0", "US-WA-033");
 
       expect(order).toEqual(["defer", "unsubscribe"]);
       expect(serviceMock.unsubscribe).toHaveBeenCalledWith("CH1", "US-WA-033");
       expect(interaction.editReply).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses a non-admin caller without unsubscribing", async () => {
+      interaction.memberPermissions.has.mockReturnValue(false);
+
+      await removeSelected("0", "US-WA-033");
+
+      expect(serviceMock.unsubscribe).not.toHaveBeenCalled();
+      expect(interaction.deferUpdate).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith(
+        expect.objectContaining({ flags: [MessageFlags.Ephemeral] }),
+      );
     });
   });
 });
