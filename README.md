@@ -46,7 +46,7 @@ The bot runs database migrations on startup using the Drizzle files in `apps/scr
 3. Start the bot: `pnpm --filter scrubjay-discord dev`
 4. Optional: run the mock API at `localhost:8080` with `pnpm --filter test-api dev`
 
-Jobs ingest eBird data every 15 minutes and dispatch grouped alerts every minute; a daily retention job (04:17) prunes aged observations and delivery records. Bootstrap logic runs on startup to backfill observations without sending Discord messages. A `/health` HTTP endpoint (on `PORT`) reports DB connectivity plus ingest/dispatch freshness.
+Jobs ingest eBird data every 15 minutes and dispatch grouped alerts every minute; a daily retention job (04:17) prunes aged observations and delivery records. Bootstrap logic runs on startup to backfill observations without sending Discord messages. A `/health` HTTP endpoint (on `PORT`) reports DB connectivity plus ingest/dispatch freshness. Optional OpenTelemetry export (traces, metrics, structured logs over OTLP) is documented in [OBSERVABILITY.md](OBSERVABILITY.md).
 
 ## Notes
 
