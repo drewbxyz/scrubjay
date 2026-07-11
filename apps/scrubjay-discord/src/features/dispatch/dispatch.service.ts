@@ -26,6 +26,12 @@ export class DispatchService {
       description: "Pending alerts at the start of each dispatch tick",
     });
 
+  private readonly alerts = metrics
+    .getMeter("scrubjay-discord")
+    .createCounter("scrubjay.dispatch.alerts", {
+      description: "Alert delivery outcomes by status",
+    });
+
   private readonly logger = new Logger(DispatchService.name);
 
   constructor(
@@ -50,6 +56,7 @@ export class DispatchService {
         // Record immediately: a crash now loses at most this one plan's
         // records instead of the whole tick's (at-least-once, spec §2).
         await this.alertQueue.record(refs, "sent");
+        this.alerts.add(refs.length, { status: "sent" });
         sentCount += refs.length;
       } catch (err) {
         await this.handleSendFailure(plan.channelId, refs, err);
@@ -84,10 +91,12 @@ export class DispatchService {
         `Send failed for channel ${channelId}; alerts stay pending`,
         err instanceof Error ? err.stack : String(err),
       );
+      this.alerts.add(refs.length, { status: "transient" });
       return;
     }
 
     await this.alertQueue.record(refs, "failed", `discord:${failure.code}`);
+    this.alerts.add(refs.length, { status: "failed" });
     if (failure.channelGone) {
       const count = await this.alertQueue.deactivateChannel(channelId);
       this.logger.error(

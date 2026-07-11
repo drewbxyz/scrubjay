@@ -52,6 +52,11 @@ function makeAlert(
 
 const metricHarness = registerMetricHarness();
 
+async function alertCount(status: string): Promise<number | undefined> {
+  const metric = await metricHarness.collect("scrubjay.dispatch.alerts");
+  return metric?.dataPoints.find((p) => p.attributes.status === status)?.value;
+}
+
 describe("DispatchService", () => {
   let service: DispatchService;
 
@@ -88,6 +93,40 @@ describe("DispatchService", () => {
 
   afterAll(async () => {
     await metricHarness.shutdown();
+  });
+
+  // These three must run before any other test in this file dispatches a
+  // sent/failed/transient alert: the shared DELTA-temporality harness only
+  // exports a metric once it has a new delta, so pending counts from an
+  // earlier test would surface on this flush and inflate the value (see
+  // otel-harness.ts).
+  it("counts sent alerts", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([
+      makeAlert({ subId: "S001" }),
+      makeAlert({ subId: "S002" }),
+    ]);
+
+    await service.dispatchSince(since);
+
+    expect(await alertCount("sent")).toBe(2);
+  });
+
+  it("counts permanently failed alerts", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([makeAlert()]);
+    senderMock.send.mockRejectedValue(apiError(50013));
+
+    await service.dispatchSince(since);
+
+    expect(await alertCount("failed")).toBe(1);
+  });
+
+  it("counts transient send failures separately", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([makeAlert()]);
+    senderMock.send.mockRejectedValue(new Error("socket hang up"));
+
+    await service.dispatchSince(since);
+
+    expect(await alertCount("transient")).toBe(1);
   });
 
   it("asks the queue for alerts pending since the cutoff", async () => {
