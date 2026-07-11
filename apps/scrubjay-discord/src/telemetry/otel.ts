@@ -54,6 +54,15 @@ export function startOtel(): boolean {
       new HttpInstrumentation({
         // Docker probes /health every 30s; don't trace it.
         ignoreIncomingRequestHook: (req) => req.url === "/health",
+        // The Discord gateway is a long-lived WebSocket opened via an HTTP GET
+        // that never returns. Instrumenting it yields a client span that stays
+        // open for the whole bot session — and because gateway 'message'
+        // callbacks run inside that span's context, every interaction gets
+        // silently adopted as its child. Command spans then hang off a root
+        // that's never exported (Tempo: "root span not yet received"). Skip it
+        // so interactions become their own roots.
+        ignoreOutgoingRequestHook: (options) =>
+          isHost(options.hostname ?? options.host ?? "", "discord.gg"),
       }),
       new ExpressInstrumentation(),
       new NestInstrumentation(),
