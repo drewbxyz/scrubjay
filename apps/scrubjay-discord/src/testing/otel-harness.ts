@@ -29,12 +29,22 @@ export function registerMetricHarness() {
 
   return {
     async collect(name: string): Promise<MetricData | undefined> {
+      return (await this.collectAll()).find(
+        (metric) => metric.descriptor.name === name,
+      );
+    },
+    // One flush observes every registered async callback on this reader, so
+    // sequential collect() calls for different observable instruments each
+    // consume the next delta and see 0 the second time. Use this to read
+    // several observable metrics from a single flush instead.
+    async collectAll(): Promise<MetricData[]> {
       await reader.forceFlush();
-      return exporter
-        .getMetrics()
-        .at(-1)
-        ?.scopeMetrics.flatMap((scope) => scope.metrics)
-        .find((metric) => metric.descriptor.name === name);
+      return (
+        exporter
+          .getMetrics()
+          .at(-1)
+          ?.scopeMetrics.flatMap((scope) => scope.metrics) ?? []
+      );
     },
     async shutdown(): Promise<void> {
       await provider.shutdown();
