@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { RetentionService } from "@/features/retention/retention.service";
+import { JobTelemetry } from "@/telemetry/job-telemetry.service";
 import { BootstrapService } from "./bootstrap.service";
 
 @Injectable()
@@ -10,6 +11,7 @@ export class RetentionJob {
   constructor(
     private readonly retention: RetentionService,
     private readonly bootstrapService: BootstrapService,
+    private readonly jobTelemetry: JobTelemetry,
   ) {}
 
   /**
@@ -20,8 +22,10 @@ export class RetentionJob {
   @Cron("17 4 * * *")
   async run() {
     try {
-      await this.bootstrapService.waitForBootstrap();
-      await this.retention.prune();
+      await this.jobTelemetry.run("retention", async () => {
+        await this.bootstrapService.waitForBootstrap();
+        await this.retention.prune();
+      });
     } catch (err) {
       this.logger.error(
         `Retention run failed`,

@@ -10,6 +10,7 @@ import {
 } from "vitest";
 import type { DispatchService } from "@/features/dispatch/dispatch.service";
 import type { HealthStateService } from "@/features/health/health-state.service";
+import { JobTelemetry } from "@/telemetry/job-telemetry.service";
 import type { BootstrapService } from "./bootstrap.service";
 import { DispatchJob } from "./dispatch.job";
 
@@ -38,6 +39,7 @@ describe("DispatchJob", () => {
       dispatcherMock as unknown as DispatchService,
       bootstrapMock as unknown as BootstrapService,
       healthStateMock as unknown as HealthStateService,
+      new JobTelemetry(),
     );
   });
 

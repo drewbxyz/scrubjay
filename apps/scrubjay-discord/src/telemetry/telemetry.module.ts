@@ -1,6 +1,7 @@
 import { Global, Module, type OnApplicationShutdown } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { CommandTelemetryInterceptor } from "./command-telemetry.interceptor";
+import { JobTelemetry } from "./job-telemetry.service";
 import { shutdownOtel } from "./otel";
 
 /**
@@ -9,8 +10,10 @@ import { shutdownOtel } from "./otel";
  */
 @Global()
 @Module({
+  exports: [JobTelemetry],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: CommandTelemetryInterceptor },
+    JobTelemetry,
   ],
 })
 export class TelemetryModule implements OnApplicationShutdown {

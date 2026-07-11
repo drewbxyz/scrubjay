@@ -11,6 +11,7 @@ import {
 import type { HealthStateService } from "@/features/health/health-state.service";
 import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";
+import { JobTelemetry } from "@/telemetry/job-telemetry.service";
 import type { BootstrapService } from "./bootstrap.service";
 import { IngestJob } from "./ingest.job";
 
@@ -52,6 +53,7 @@ describe("IngestJob", () => {
       bootstrapMock as unknown as BootstrapService,
       sourcesMock as unknown as SourcesRepository,
       healthStateMock as unknown as HealthStateService,
+      new JobTelemetry(),
     );
   });
 

@@ -9,6 +9,7 @@ import {
   vi,
 } from "vitest";
 import type { RetentionService } from "@/features/retention/retention.service";
+import { JobTelemetry } from "@/telemetry/job-telemetry.service";
 import type { BootstrapService } from "./bootstrap.service";
 import { RetentionJob } from "./retention.job";
 
@@ -32,6 +33,7 @@ describe("RetentionJob", () => {
     job = new RetentionJob(
       retentionMock as unknown as RetentionService,
       bootstrapMock as unknown as BootstrapService,
+      new JobTelemetry(),
     );
   });
 
