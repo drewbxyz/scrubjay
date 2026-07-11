@@ -117,6 +117,10 @@ describe("IngestService", () => {
     await metricHarness.shutdown();
   });
 
+  // Must run before any other test in this file records to scrubjay.ingest.records:
+  // the shared DELTA-temporality harness only exports a metric once it has a new
+  // delta, so a pending count from an earlier test would surface on this flush and
+  // make `collect` return a stale non-undefined value (see otel-harness.ts).
   it("does not count records when the fetch fails", async () => {
     fetcherMock.fetchRareObservations.mockRejectedValue(
       new Error("ebird down"),
