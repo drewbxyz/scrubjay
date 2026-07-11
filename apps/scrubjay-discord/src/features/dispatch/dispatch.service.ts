@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { metrics } from "@opentelemetry/api";
 import { MessageSenderService } from "@/discord/message-sender.service";
 import {
   AlertQueue,
@@ -19,6 +20,12 @@ const SWEEP_FLOOR_MS = 7 * 24 * 60 * 60 * 1000;
  */
 @Injectable()
 export class DispatchService {
+  private readonly queueDepth = metrics
+    .getMeter("scrubjay-discord")
+    .createGauge("scrubjay.dispatch.queue.depth", {
+      description: "Pending alerts at the start of each dispatch tick",
+    });
+
   private readonly logger = new Logger(DispatchService.name);
 
   constructor(
@@ -28,6 +35,8 @@ export class DispatchService {
 
   async dispatchSince(since: Date): Promise<void> {
     const pending = await this.alertQueue.pendingEBirdAlerts(since);
+
+    this.queueDepth.record(pending.length);
 
     if (pending.length === 0) {
       this.logger.debug(`No new alerts since ${since.toISOString()}`);

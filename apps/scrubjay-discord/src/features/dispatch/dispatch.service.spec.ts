@@ -1,7 +1,16 @@
 import { Logger } from "@nestjs/common";
 import { DiscordAPIError } from "discord.js";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { MessageSenderService } from "@/discord/message-sender.service";
+import { registerMetricHarness } from "@/testing/otel-harness";
 import type { AlertQueue, PendingEBirdAlert } from "./alert-queue.service";
 import { DispatchService } from "./dispatch.service";
 
@@ -41,6 +50,8 @@ function makeAlert(
   };
 }
 
+const metricHarness = registerMetricHarness();
+
 describe("DispatchService", () => {
   let service: DispatchService;
 
@@ -75,6 +86,10 @@ describe("DispatchService", () => {
     vi.restoreAllMocks();
   });
 
+  afterAll(async () => {
+    await metricHarness.shutdown();
+  });
+
   it("asks the queue for alerts pending since the cutoff", async () => {
     await service.dispatchSince(since);
 
@@ -86,6 +101,16 @@ describe("DispatchService", () => {
 
     expect(senderMock.send).not.toHaveBeenCalled();
     expect(alertQueueMock.record).not.toHaveBeenCalled();
+  });
+
+  it("records the pending queue depth for the tick", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([makeAlert()]);
+    senderMock.send.mockResolvedValue(undefined);
+
+    await service.dispatchSince(since);
+
+    const depth = await metricHarness.collect("scrubjay.dispatch.queue.depth");
+    expect(depth?.dataPoints.at(-1)?.value).toBe(1);
   });
 
   it("sends one message per plan and records every sent alert", async () => {
