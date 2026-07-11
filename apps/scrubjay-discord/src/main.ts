@@ -10,6 +10,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Logger as PinoLogger } from "nestjs-pino";
 import { Pool } from "pg";
 import type { AppConfig } from "@/core/config/config.schema";
+import { poolNameFields } from "@/core/drizzle/pool-name";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -25,8 +26,10 @@ async function bootstrap() {
   // Migrations must finish before the bot goes live; Necord login and
   // cron jobs only start on listen(). Use a dedicated pool and close it so
   // no orphaned connection outlives the migration.
+  const migrationDatabaseUrl = config.get("DATABASE_URL", { infer: true });
   const migrationPool = new Pool({
-    connectionString: config.get("DATABASE_URL", { infer: true }),
+    connectionString: migrationDatabaseUrl,
+    ...poolNameFields(migrationDatabaseUrl),
   });
   try {
     await migrate(drizzle(migrationPool), {

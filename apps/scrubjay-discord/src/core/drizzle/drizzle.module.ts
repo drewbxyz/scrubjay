@@ -7,6 +7,7 @@ import * as schema from "./drizzle.schema";
 import { DrizzleService } from "./drizzle.service";
 import { PG_CONNECTION, PG_POOL } from "./pg-connection";
 import { PoolLifecycle } from "./pool-lifecycle";
+import { poolNameFields } from "./pool-name";
 
 const CONNECTION_TIMEOUT_MS = 10_000;
 const IDLE_TIMEOUT_MS = 30_000;
@@ -23,12 +24,17 @@ const MAX_POOL_CONNECTIONS = 10;
       provide: PG_POOL,
       useFactory: (configService: ConfigService<AppConfig, true>) => {
         const logger = new Logger("PgPool");
+        const databaseUrl = configService.get("DATABASE_URL", { infer: true });
         const pool = new Pool({
-          connectionString: configService.get("DATABASE_URL", { infer: true }),
+          connectionString: databaseUrl,
           connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
           idleTimeoutMillis: IDLE_TIMEOUT_MS,
           max: MAX_POOL_CONNECTIONS,
           statement_timeout: STATEMENT_TIMEOUT_MS,
+          // Populate host/port/database so instrumentation-pg can name the pool
+          // (db.client.connection.pool.name); connectionString still wins for
+          // the actual connection.
+          ...poolNameFields(databaseUrl),
         });
         // Without this handler an error on an idle client surfaces as an
         // unhandled 'error' event and crashes the process.
