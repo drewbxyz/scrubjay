@@ -73,6 +73,10 @@ export async function shutdownOtel(): Promise<void> {
   const running = sdk;
   sdk = null;
   // A flush failure (e.g. collector unreachable) must not prevent app
-  // shutdown from completing.
-  await running?.shutdown().catch(() => undefined);
+  // shutdown from completing, but it shouldn't be silent either. console is
+  // deliberate: pino (and its transports) may already be torn down by the
+  // time shutdown runs, so the app logger isn't a reliable sink here.
+  await running?.shutdown().catch((err) => {
+    console.error("OTel shutdown failed", err);
+  });
 }

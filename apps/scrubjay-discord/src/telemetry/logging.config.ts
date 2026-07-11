@@ -1,5 +1,24 @@
 import type { Params } from "nestjs-pino";
 
+const PINO_LEVELS = new Set([
+  "debug",
+  "error",
+  "fatal",
+  "info",
+  "trace",
+  "warn",
+]);
+
+/**
+ * pino throws at startup on any level string it doesn't recognize
+ * (including ""), so an empty or non-lowercase LOG_LEVEL must fall back to
+ * "info" rather than reach pino as-is.
+ */
+function resolveLogLevel(rawLevel: string | undefined): string {
+  const normalized = (rawLevel ?? "").toLowerCase();
+  return PINO_LEVELS.has(normalized) ? normalized : "info";
+}
+
 /**
  * Structured JSON logs on stdout. autoLogging is off because the only HTTP
  * surface is /health, probed every 30s by Docker — request logs would be
@@ -12,7 +31,7 @@ export function buildLoggerParams(env: NodeJS.ProcessEnv): Params {
   return {
     pinoHttp: {
       autoLogging: false,
-      level: env.LOG_LEVEL ?? "info",
+      level: resolveLogLevel(env.LOG_LEVEL),
     },
   };
 }

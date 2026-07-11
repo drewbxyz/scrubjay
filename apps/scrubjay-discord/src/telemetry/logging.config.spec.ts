@@ -18,4 +18,28 @@ describe("buildLoggerParams", () => {
 
     expect(pinoHttp.level).toBe("debug");
   });
+
+  it("falls back to info when LOG_LEVEL is empty", () => {
+    const { pinoHttp } = buildLoggerParams({ LOG_LEVEL: "" }) as {
+      pinoHttp: PinoHttpShape;
+    };
+
+    expect(pinoHttp.level).toBe("info");
+  });
+
+  it("lowercases a non-lowercase LOG_LEVEL", () => {
+    const { pinoHttp } = buildLoggerParams({ LOG_LEVEL: "DEBUG" }) as {
+      pinoHttp: PinoHttpShape;
+    };
+
+    expect(pinoHttp.level).toBe("debug");
+  });
+
+  it("falls back to info when LOG_LEVEL is not a pino level", () => {
+    const { pinoHttp } = buildLoggerParams({ LOG_LEVEL: "nonsense" }) as {
+      pinoHttp: PinoHttpShape;
+    };
+
+    expect(pinoHttp.level).toBe("info");
+  });
 });
