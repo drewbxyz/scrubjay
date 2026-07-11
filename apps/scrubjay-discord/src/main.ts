@@ -7,13 +7,15 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Logger as PinoLogger } from "nestjs-pino";
 import { Pool } from "pg";
 import type { AppConfig } from "@/core/config/config.schema";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   // Creating the app validates the environment and loads .env.
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   const config = app.get(ConfigService<AppConfig, true>);
 
   // Wire OS signals to Nest lifecycle hooks so the pg pool drains and Necord
