@@ -162,6 +162,63 @@ describe("AlertQueueRepository", () => {
       expect(stillPending.map((a) => a.channelId)).toEqual(["CH2"]);
     });
 
+    it("suppresses only alerts within the backfill window, leaving older ones untouched", async () => {
+      // Dispatch sends on a fixed 15-minute lookback, so alerts older than the
+      // 8-day backfill window can never reach the new channel — and before the
+      // retention prune runs, the table may hold months of stale observations
+      // that a full-table backfill would needlessly mark.
+      await seedLocation(db);
+      await seedSubscription(db);
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+      await seedObservation(db, { subId: "S_RECENT" });
+      await seedObservation(db, { createdAt: tenDaysAgo, subId: "S_OLD" });
+
+      await repository.backfillDeliveries(scope);
+
+      // Only the in-window alert is suppressed; the stale one is left alone.
+      const rows = await db.db.select().from(deliveries);
+      expect(rows.map((r) => r.alertId)).toEqual(["verfly:S_RECENT"]);
+    });
+
+    it("backfills a region whose pending count exceeds the bind-param limit", async () => {
+      // A statewide subscription's 14-day backfill can pull tens of thousands
+      // of pending rows. Each delivery row binds 4 params; a single unbatched
+      // insert past 65535/4 = 16383 rows overflows Postgres's 16-bit param
+      // count and desyncs the wire protocol ("bind message has N parameter
+      // formats but 0 parameters"). Seed just over the boundary.
+      const rowCount = 16_384;
+      await seedLocation(db);
+      await seedSubscription(db);
+      const obsRows = Array.from({ length: rowCount }, (_, i) => ({
+        audioCount: 0,
+        comName: "Vermilion Flycatcher",
+        createdAt: new Date(),
+        hasComments: false,
+        howMany: 1,
+        locId: "L001",
+        obsDt: new Date(),
+        obsReviewed: false,
+        obsValid: false,
+        photoCount: 0,
+        presenceNoted: false,
+        sciName: "Pyrocephalus rubinus",
+        speciesCode: "verfly",
+        subId: `S${String(i).padStart(6, "0")}`,
+        videoCount: 0,
+      }));
+      for (let i = 0; i < obsRows.length; i += 1000) {
+        await db.db.insert(observations).values(obsRows.slice(i, i + 1000));
+      }
+
+      await repository.backfillDeliveries(scope);
+
+      const [{ count }] = await db.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(deliveries);
+      expect(count).toBe(rowCount);
+      expect(await repository.pendingEBirdAlerts()).toHaveLength(0);
+    });
+
     it("skips filtered species and already-delivered alerts", async () => {
       await seedLocation(db);
       await seedSubscription(db);

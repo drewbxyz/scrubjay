@@ -13,6 +13,26 @@ import { type DbOrTx, DrizzleService } from "@/core/drizzle/drizzle.service";
 const CONFIRMED_WINDOW_DAYS = 7;
 
 /**
+ * Rows per delivery insert. Each row binds 4 params, and a single Postgres
+ * bind message caps at 65535 params (a 16-bit wire-protocol count), so an
+ * unbatched insert desyncs the protocol past ~16.4k rows — reachable by a
+ * statewide ("*" county) subscription's 14-day backfill. 1000 (4000 params)
+ * stays well clear and matches the ingest/retention chunk sizes.
+ */
+const DELIVERY_INSERT_BATCH_SIZE = 1_000;
+
+/**
+ * How far back a subscribe-time backfill suppresses. Dispatch sends on a fixed
+ * 15-minute lookback (DispatchJob), so an alert older than that can never reach
+ * a newly-subscribed channel anyway — suppressing the entire retention window
+ * is unnecessary, and until the retention prune runs `observations` may hold
+ * months of history a full-table backfill would needlessly scan and mark. 8
+ * days covers the eBird ingest / sweep window (SWEEP_FLOOR_MS, 7 days) with a
+ * day of margin, and is far more than the 15-minute dispatch lookback requires.
+ */
+const BACKFILL_WINDOW_MS = 8 * 24 * 60 * 60 * 1000;
+
+/**
  * Per-tick cap on the pending read. Overflow stays pending (no delivery row
  * is written) and drains oldest-first on later ticks; the 15-minute window
  * gives ~15 attempts before the expired sweep records the loss. Sized for
@@ -126,6 +146,7 @@ export class AlertQueueRepository {
     scope: SubscriptionScope,
     db: DbOrTx = this.drizzle.db,
   ): Promise<void> {
+    const since = new Date(Date.now() - BACKFILL_WINDOW_MS);
     const pending = await db
       .select({
         alertId: alertIdExpr,
@@ -136,22 +157,36 @@ export class AlertQueueRepository {
       .innerJoin(channelEBirdSubscriptions, this.subscriptionMatch())
       .leftJoin(filteredSpecies, this.filteredSpeciesMatch())
       .leftJoin(deliveries, this.priorDeliveryMatch())
-      .where(this.pendingWhere(undefined, scope));
+      .where(this.pendingWhere(since, scope));
 
     if (pending.length === 0) return;
 
-    await db
-      .insert(deliveries)
-      .values(
-        pending.map((row) => ({
-          ...row,
-          kind: "ebird" as const,
-          // Backfilled alerts were never actually sent — record them as
-          // suppressed so delivery stats only count real sends.
-          status: "suppressed" as const,
-        })),
-      )
-      .onConflictDoNothing();
+    await this.insertDeliveriesBatched(
+      pending.map((row) => ({
+        ...row,
+        kind: "ebird" as const,
+        // Backfilled alerts were never actually sent — record them as
+        // suppressed so delivery stats only count real sends.
+        status: "suppressed" as const,
+      })),
+      db,
+    );
+  }
+
+  /**
+   * Insert delivery rows in param-safe chunks (see DELIVERY_INSERT_BATCH_SIZE).
+   * Runs on the caller's `db`/`tx` so it composes inside a transaction.
+   */
+  private async insertDeliveriesBatched(
+    rows: (typeof deliveries.$inferInsert)[],
+    db: DbOrTx,
+  ): Promise<void> {
+    for (let i = 0; i < rows.length; i += DELIVERY_INSERT_BATCH_SIZE) {
+      await db
+        .insert(deliveries)
+        .values(rows.slice(i, i + DELIVERY_INSERT_BATCH_SIZE))
+        .onConflictDoNothing();
+    }
   }
 
   /**
@@ -185,17 +220,15 @@ export class AlertQueueRepository {
 
     if (expired.length === 0) return [];
 
-    await this.drizzle.db
-      .insert(deliveries)
-      .values(
-        expired.map((row) => ({
-          alertId: row.alertId,
-          channelId: row.channelId,
-          kind: "ebird" as const,
-          status: "expired" as const,
-        })),
-      )
-      .onConflictDoNothing();
+    await this.insertDeliveriesBatched(
+      expired.map((row) => ({
+        alertId: row.alertId,
+        channelId: row.channelId,
+        kind: "ebird" as const,
+        status: "expired" as const,
+      })),
+      this.drizzle.db,
+    );
 
     return expired;
   }
