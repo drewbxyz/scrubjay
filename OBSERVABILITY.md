@@ -97,56 +97,18 @@ Then start the bot with `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`
 spans appear as commands run and crons tick, metrics arrive every minute,
 and every log line shows up as a log record.
 
-## Critical Health dashboard
+## Metric semantics
 
-`observability/dashboards/critical-health.json` is an importable Grafana
-dashboard model covering liveness (is dispatch/ingest running, are commands
-and jobs failing), the ingest → eBird path, the dispatch → Discord delivery
-path, Discord interaction latency, and the Postgres pool.
-
-**Import:**
-
-1. Grafana → Dashboards → New → Import.
-2. Upload `observability/dashboards/critical-health.json` (or paste its
-   contents).
-3. When prompted for the `DS_PROM` variable, pick the Prometheus datasource
-   backed by this stack's OTLP→Prometheus metrics.
-4. Import, then confirm every panel renders (see the verification checklist
-   below before trusting any panel that shows "No data").
-
-**⚠️ VERIFY THESE NAMES before/after import.** This dashboard's queries were
-authored from the *logical* OTel instrument names using the standard
-OTLP→Prometheus mangling rules (dots → `_`; counters gain a `_total` suffix;
-`ms`-unit histograms become `_milliseconds_bucket` / `_sum` / `_count`;
-gauges and up-down counters keep their base name). Nobody has confirmed
-these against the live metric browser yet — this dashboard has **not**
-been imported or rendered against a real Grafana Cloud stack. Before
-relying on it, open Grafana → Explore → the Prometheus datasource →
-metric browser, and check each name below actually exists; fix any query
-in the JSON whose name differs.
-
-| Query uses | Expect to find |
-|---|---|
-| `scrubjay_job_runs_total` | counter, labels `job`, `status` |
-| `scrubjay_job_duration_milliseconds_bucket` / `_sum` / `_count` | histogram, labels `job`, `status`, `le` |
-| `scrubjay_command_errors_total` | counter, label `command` |
-| `scrubjay_command_duration_milliseconds_bucket` / `_sum` / `_count` | histogram, labels `command`, `status`, `le` |
-| `scrubjay_discord_gateway_reconnects_total` | counter, label `event` |
-| `scrubjay_dispatch_queue_depth` | gauge, no `_total` suffix |
-| `scrubjay_dispatch_alerts_total` | counter, label `status` |
-| `scrubjay_ingest_records_total` | counter, label `region` |
-| `scrubjay_db_pool_errors_total` | counter |
-| `db_client_connection_count` | gauge, label `state` |
-| `db_client_connection_pending_requests` | gauge |
-| `traces_service_graph_request_total` / `traces_service_graph_request_failed_total` | Tempo/Grafana Agent service-graph metrics, label `server` |
-
-If any name above doesn't match the metric browser, edit
-`observability/dashboards/critical-health.json` directly (each panel's
-`targets[].expr`), re-import, and confirm the panel now shows data.
-
-**Note on `scrubjay_dispatch_alerts_total` by `status`:** `transient` counts
-retry attempts, not unique alerts — one alert failing transiently over K
-ticks increments `transient` K times and may later also increment `sent`.
+**`scrubjay_dispatch_alerts_total` by `status`:** `transient` counts retry
+attempts, not unique alerts — one alert failing transiently over K ticks
+increments `transient` K times and may later also increment `sent`.
 `sent + failed + transient + expired` is therefore NOT a partition of unique
 alerts. A stacked or percentage panel over `status` should treat
 `transient`/`expired` as attempt-rate signals, not shares of a total.
+
+The `scrubjay.*` OTel instrument names reach Prometheus with the standard
+OTLP→Prometheus mangling (dots → `_`; counters gain a `_total` suffix;
+`ms`-unit histograms become `_milliseconds_bucket` / `_sum` / `_count`;
+gauges and up-down counters keep their base name). A starter "Critical
+Health" Grafana dashboard is maintained outside this repo (in Grafana); it
+is intentionally not version-controlled here.

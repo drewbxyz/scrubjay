@@ -7,3 +7,5 @@ node_modules
 .turbo
 
 dump.sql
+# Grafana dashboard is maintained in Grafana, not version-controlled here
+observability/dashboards/
