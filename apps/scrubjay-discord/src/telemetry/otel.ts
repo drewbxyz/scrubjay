@@ -49,6 +49,19 @@ export function startOtel(): boolean {
       new ExpressInstrumentation(),
       new NestInstrumentation(),
       new UndiciInstrumentation({
+        // Tag outbound calls with the standard peer.service attribute so a
+        // service-graph generator draws virtual-node edges for these
+        // uninstrumented dependencies (undici emits server.address but not
+        // peer.service, which such generators key on) — and names them
+        // cleanly ("ebird"/"discord") instead of raw hostnames.
+        requestHook: (span, request) => {
+          const origin = request.origin ?? "";
+          if (origin.includes("ebird.org")) {
+            span.setAttribute("peer.service", "ebird");
+          } else if (origin.includes("discord.com")) {
+            span.setAttribute("peer.service", "discord");
+          }
+        },
         // Client spans only inside an existing trace, otherwise every
         // background Discord REST call becomes its own root trace.
         requireParentforSpans: true,
