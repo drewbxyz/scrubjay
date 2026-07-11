@@ -1,4 +1,5 @@
 import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
+import { metrics } from "@opentelemetry/api";
 import { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import { IngestService } from "@/features/ingest/ingest.service";
 import { SourcesRepository } from "@/features/sources/sources.repository";
@@ -9,6 +10,12 @@ import { SourcesRepository } from "@/features/sources/sources.repository";
  */
 @Injectable()
 export class BootstrapService implements OnModuleInit {
+  private readonly alerts = metrics
+    .getMeter("scrubjay-discord")
+    .createCounter("scrubjay.dispatch.alerts", {
+      description: "Alert delivery outcomes by status",
+    });
+
   private readonly logger = new Logger(BootstrapService.name);
 
   private bootstrapPromise: Promise<void> | null = null;
@@ -56,6 +63,7 @@ export class BootstrapService implements OnModuleInit {
     // startup beats dispatching a burst of stale alerts (B6).
     const pending = await this.alertQueue.pendingEBirdAlerts();
     await this.alertQueue.record(pending, "suppressed");
+    this.alerts.add(pending.length, { status: "suppressed" });
     this.logger.log(
       `Suppressed ${pending.length} pre-existing alerts (bootstrap mode).`,
     );
