@@ -7,6 +7,7 @@ import { FiltersModule } from "@/features/filters/filters.module";
 import { HealthModule } from "@/features/health/health.module";
 import { JobsModule } from "@/features/jobs/jobs.module";
 import { SubscriptionsModule } from "@/features/subscriptions/subscriptions.module";
+import { TelemetryModule } from "@/telemetry/telemetry.module";
 import { DrizzleModule } from "./core/drizzle/drizzle.module";
 import { DiscordModule } from "./discord/discord.module";
 import { createNecordOptions } from "./discord/necord.config";
@@ -18,6 +19,7 @@ import { createNecordOptions } from "./discord/necord.config";
       isGlobal: true,
       validate: validateConfig,
     }),
+    TelemetryModule,
     DrizzleModule,
     NecordModule.forRootAsync({
       imports: [ConfigModule],

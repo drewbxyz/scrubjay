@@ -1,3 +1,7 @@
+// OTel bootstrap must be the first import: instrumentation monkey-patches
+// pg/http/undici/pino only if it loads before they do (require order).
+import "./telemetry/otel.bootstrap";
+
 import { join } from "node:path";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
