@@ -1,7 +1,8 @@
 # Base stage: Set up Node.js and pnpm
 FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+# pnpm 11 installs global bins to $PNPM_HOME/bin (older pnpm used $PNPM_HOME)
+ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 RUN apk add --no-cache libc6-compat && \
     corepack enable && \
     pnpm install turbo --global
@@ -24,7 +25,7 @@ RUN pnpm install --frozen-lockfile
 COPY turbo.json turbo.json
 RUN turbo run build --filter=scrubjay-discord
 
-FROM node:22-alpine as runner
+FROM node:22-alpine AS runner
 
 WORKDIR /usr/src/app
  
@@ -48,4 +49,4 @@ WORKDIR /usr/src/app/apps/scrubjay-discord
 # Discord login. Alpine has no curl; node 22's global fetch does the probe.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD node -e 'fetch("http://127.0.0.1:" + (process.env.PORT ?? 3000) + "/health").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]
