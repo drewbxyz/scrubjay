@@ -89,16 +89,7 @@ export function startOtel(): boolean {
         // background Discord REST call becomes its own root trace.
         requireParentforSpans: true,
       }),
-      new PgInstrumentation({
-        // Same as the undici hook above: postgres emits no server spans, so
-        // the service-graph generator only draws the edge if the client span
-        // carries peer.service. "postgres" matches the exporter-derived
-        // entity name so the graph resolves to one node, not two.
-        requestHook: (span) => {
-          span.setAttribute("peer.service", "postgres");
-        },
-        requireParentSpan: true,
-      }),
+      new PgInstrumentation({ requireParentSpan: true }),
       new PinoInstrumentation(),
     ],
     logRecordProcessors: [
