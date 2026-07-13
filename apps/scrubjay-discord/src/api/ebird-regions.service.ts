@@ -28,13 +28,22 @@ export class EBirdRegionsService {
       `/v2/ref/region/list/subnational2/${encodeURIComponent(stateCode)}?fmt=json`,
       this.configService.get("EBIRD_BASE_URL", { infer: true }),
     );
-    const response = await fetch(url, {
-      headers: {
-        "X-eBirdApiToken": this.configService.get("EBIRD_TOKEN", {
-          infer: true,
-        }),
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          "X-eBirdApiToken": this.configService.get("EBIRD_TOKEN", {
+            infer: true,
+          }),
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new BadGatewayException({
+        code: "UPSTREAM",
+        message: `eBird request failed for ${stateCode}`,
+      });
+    }
     if (!response.ok) {
       throw new BadGatewayException({
         code: "UPSTREAM",

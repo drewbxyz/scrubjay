@@ -77,7 +77,13 @@ export class SubscriptionsRepository {
     ].filter((c) => c !== undefined);
 
     return this.drizzle.db
-      .select()
+      .select({
+        active: channelEBirdSubscriptions.active,
+        channelId: channelEBirdSubscriptions.channelId,
+        countyCode: channelEBirdSubscriptions.countyCode,
+        lastUpdated: channelEBirdSubscriptions.lastUpdated,
+        stateCode: channelEBirdSubscriptions.stateCode,
+      })
       .from(channelEBirdSubscriptions)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(

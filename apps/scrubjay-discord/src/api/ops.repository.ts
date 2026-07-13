@@ -55,7 +55,11 @@ export class OpsRepository {
       .from(observations)
       .innerJoin(locations, eq(locations.id, observations.locId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(observations.createdAt))
+      .orderBy(
+        desc(observations.createdAt),
+        desc(observations.subId),
+        desc(observations.speciesCode),
+      )
       .limit(query.limit + 1)
       .offset(query.offset);
 
@@ -72,7 +76,15 @@ export class OpsRepository {
     ].filter((c) => c !== undefined);
 
     const rows = await this.drizzle.db
-      .select()
+      .select({
+        alertId: deliveries.alertId,
+        channelId: deliveries.channelId,
+        detail: deliveries.detail,
+        id: deliveries.id,
+        kind: deliveries.kind,
+        sentAt: deliveries.sentAt,
+        status: deliveries.status,
+      })
       .from(deliveries)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(deliveries.sentAt), desc(deliveries.id))

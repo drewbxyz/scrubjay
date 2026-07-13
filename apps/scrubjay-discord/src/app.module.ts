@@ -41,6 +41,10 @@ import { createNecordOptions } from "./discord/necord.config";
     HealthModule,
     SubscriptionsModule,
     JobsModule,
+    // Reads raw process.env at module-decoration time, so env must already be
+    // populated (dotenv loads via the otel bootstrap import in main.ts, and
+    // ConfigModule.forRoot above also loads it). If unset, ApiModule — and
+    // thus all /api/v1 routes — is not registered (fail-closed).
     ...(process.env.SCRUBJAY_API_TOKEN ? [ApiModule] : []),
   ],
   providers: [],

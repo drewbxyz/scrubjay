@@ -4,12 +4,15 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import type { Response } from "express";
 
 /** Renders every api/v1 error as the contracts' `{ error: {...} }` envelope. */
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ApiExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
 
@@ -36,6 +39,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    this.logger.error(exception);
     response.status(500).json({
       error: {
         code: "INTERNAL",

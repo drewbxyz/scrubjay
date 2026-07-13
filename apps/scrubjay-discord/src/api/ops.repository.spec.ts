@@ -47,6 +47,28 @@ describe("listObservations", () => {
     expect(page.observations).toHaveLength(1);
     expect(page.hasMore).toBe(true);
   });
+
+  it("paginates stably when createdAt ties within a batch", async () => {
+    await seedLocation(db);
+    const createdAt = new Date("2026-07-13T00:00:00.000Z");
+    await seedObservation(db, {
+      createdAt,
+      speciesCode: "verfly",
+      subId: "S1",
+    });
+    await seedObservation(db, {
+      createdAt,
+      speciesCode: "amerob",
+      subId: "S2",
+    });
+    const first = await repo.listObservations({ limit: 1, offset: 0 });
+    const second = await repo.listObservations({ limit: 1, offset: 1 });
+    expect(first.observations).toHaveLength(1);
+    expect(second.observations).toHaveLength(1);
+    expect(first.observations[0]?.subId).not.toBe(
+      second.observations[0]?.subId,
+    );
+  });
 });
 
 describe("listDeliveries", () => {

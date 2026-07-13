@@ -97,10 +97,21 @@ export class SubscriptionsController {
   async remove(
     @Query(new ZodValidationPipe(subscriptionKeySchema)) key: SubscriptionKey,
   ): Promise<{ deleted: true }> {
-    const existed = await this.service.unsubscribe(
-      key.channelId,
-      regionCodeOf(key),
-    );
+    let existed: boolean;
+    try {
+      existed = await this.service.unsubscribe(
+        key.channelId,
+        regionCodeOf(key),
+      );
+    } catch (err) {
+      if (err instanceof InvalidRegionError) {
+        throw new BadRequestException({
+          code: "INVALID_REGION",
+          message: err.message,
+        });
+      }
+      throw err;
+    }
     if (!existed) {
       throw new NotFoundException({
         code: "NOT_FOUND",

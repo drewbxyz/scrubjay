@@ -31,7 +31,10 @@ export class FiltersRepository {
 
   async channelFilters(channelId: string) {
     return this.drizzle.db
-      .select()
+      .select({
+        channelId: filteredSpecies.channelId,
+        commonName: filteredSpecies.commonName,
+      })
       .from(filteredSpecies)
       .where(eq(filteredSpecies.channelId, channelId))
       .orderBy(filteredSpecies.commonName);

@@ -40,4 +40,11 @@ describe("EBirdRegionsService", () => {
       new EBirdRegionsService(config).countiesForState("US-CA"),
     ).rejects.toThrow(BadGatewayException);
   });
+
+  it("maps a network/timeout failure to BadGatewayException", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("boom"));
+    await expect(
+      new EBirdRegionsService(config).countiesForState("US-CA"),
+    ).rejects.toThrow(BadGatewayException);
+  });
 });

@@ -93,4 +93,19 @@ describe("SubscriptionsController", () => {
     });
     expect(unsubscribe).toHaveBeenCalledWith("CH1", "US-CA");
   });
+
+  it("maps InvalidRegionError from unsubscribe to a 400 INVALID_REGION", async () => {
+    const controller = build({
+      service: {
+        unsubscribe: vi.fn().mockRejectedValue(new InvalidRegionError("nope")),
+      },
+    });
+    await expect(
+      controller.remove({
+        channelId: "CH1",
+        countyCode: "bogus",
+        stateCode: "US-CA",
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
 });
