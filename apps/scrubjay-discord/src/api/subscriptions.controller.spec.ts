@@ -44,10 +44,7 @@ describe("SubscriptionsController", () => {
   it("creates via SubscriptionsService and reports created=false on dupes", async () => {
     const subscribe = vi.fn().mockResolvedValue(false);
     const controller = build({ service: { subscribe } });
-    const result = await controller.create({
-      channelId: "CH1",
-      regionCode: "us-ca",
-    });
+    const result = await controller.create("CH1", { regionCode: "us-ca" });
     expect(subscribe).toHaveBeenCalledWith("CH1", "us-ca");
     expect(result).toEqual({ created: false });
   });
@@ -59,7 +56,7 @@ describe("SubscriptionsController", () => {
       service: { subscribe },
     });
     await expect(
-      controller.create({ channelId: "BOGUS", regionCode: "US-CA" }),
+      controller.create("BOGUS", { regionCode: "US-CA" }),
     ).rejects.toThrow(BadRequestException);
     expect(subscribe).not.toHaveBeenCalled();
   });
@@ -71,29 +68,30 @@ describe("SubscriptionsController", () => {
       },
     });
     await expect(
-      controller.create({ channelId: "CH1", regionCode: "nope" }),
+      controller.create("CH1", { regionCode: "nope" }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it("404s a PATCH against a missing composite key", async () => {
-    const controller = build({
-      repo: { setSubscriptionActive: vi.fn().mockResolvedValue(false) },
-    });
+    const setSubscriptionActive = vi.fn().mockResolvedValue(false);
+    const controller = build({ repo: { setSubscriptionActive } });
     await expect(
-      controller.update({
+      controller.update("CH1", {
         active: false,
-        channelId: "CH1",
         countyCode: "*",
         stateCode: "US-CA",
       }),
     ).rejects.toThrow(NotFoundException);
+    expect(setSubscriptionActive).toHaveBeenCalledWith(
+      { channelId: "CH1", countyCode: "*", stateCode: "US-CA" },
+      false,
+    );
   });
 
   it("deletes via SubscriptionsService.unsubscribe using the county code as region", async () => {
     const unsubscribe = vi.fn().mockResolvedValue(true);
     const controller = build({ service: { unsubscribe } });
-    await controller.remove({
-      channelId: "CH1",
+    await controller.remove("CH1", {
       countyCode: "US-CA-085",
       stateCode: "US-CA",
     });
@@ -103,8 +101,7 @@ describe("SubscriptionsController", () => {
   it("deletes a statewide subscription via the state code", async () => {
     const unsubscribe = vi.fn().mockResolvedValue(true);
     const controller = build({ service: { unsubscribe } });
-    await controller.remove({
-      channelId: "CH1",
+    await controller.remove("CH1", {
       countyCode: "*",
       stateCode: "US-CA",
     });
@@ -118,8 +115,7 @@ describe("SubscriptionsController", () => {
       },
     });
     await expect(
-      controller.remove({
-        channelId: "CH1",
+      controller.remove("CH1", {
         countyCode: "bogus",
         stateCode: "US-CA",
       }),

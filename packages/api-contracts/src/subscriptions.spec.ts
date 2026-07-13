@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createSubscriptionBodySchema,
   listSubscriptionsQuerySchema,
+  subscriptionRegionKeySchema,
   subscriptionSchema,
   updateSubscriptionBodySchema,
 } from "./subscriptions.js";
@@ -18,21 +19,35 @@ describe("subscription contracts", () => {
     expect(parsed.countyCode).toBe("US-CA-085");
   });
 
+  it("accepts a create body of just a region code", () => {
+    expect(createSubscriptionBodySchema.parse({ regionCode: "US-CA" })).toEqual(
+      {
+        regionCode: "US-CA",
+      },
+    );
+  });
+
   it("rejects a create body without regionCode", () => {
-    expect(
-      createSubscriptionBodySchema.safeParse({ channelId: "123" }).success,
-    ).toBe(false);
+    expect(createSubscriptionBodySchema.safeParse({}).success).toBe(false);
   });
 
   it("defaults list query filters to absent", () => {
     expect(listSubscriptionsQuerySchema.parse({})).toEqual({});
   });
 
-  it("requires the full composite key plus active on update", () => {
+  it("addresses a subscription by its split region key", () => {
+    expect(
+      subscriptionRegionKeySchema.parse({
+        countyCode: "*",
+        stateCode: "US-CA",
+      }),
+    ).toEqual({ countyCode: "*", stateCode: "US-CA" });
+  });
+
+  it("requires the split region key plus active on update", () => {
     expect(
       updateSubscriptionBodySchema.safeParse({
         active: false,
-        channelId: "123",
         stateCode: "US-CA",
       }).success,
     ).toBe(false);

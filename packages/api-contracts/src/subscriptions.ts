@@ -24,9 +24,16 @@ export type ListSubscriptionsResponse = z.infer<
   typeof listSubscriptionsResponseSchema
 >;
 
-/** Mirrors the /subscribe slash command: region parsing happens server-side. */
+/**
+ * Region round-trip. The channel that owns a subscription lives in the path
+ * (`channels/:channelId/subscriptions`), never the payload. Create takes an
+ * eBird `regionCode` (e.g. "US-CA" statewide, or "US-CA-085" for a county),
+ * which the server parses. The list endpoint returns the parsed key split into
+ * `stateCode` and `countyCode`, with `countyCode: "*"` marking a statewide
+ * subscription. PATCH and DELETE address an existing subscription by that split
+ * region key (see `subscriptionRegionKeySchema`).
+ */
 export const createSubscriptionBodySchema = z.object({
-  channelId: z.string().min(1),
   regionCode: z.string().min(1),
 });
 export type CreateSubscriptionBody = z.infer<
@@ -40,15 +47,18 @@ export type CreateSubscriptionResponse = z.infer<
   typeof createSubscriptionResponseSchema
 >;
 
-/** Subscriptions have no surrogate id; the composite key addresses them. */
-export const subscriptionKeySchema = z.object({
-  channelId: z.string().min(1),
+/**
+ * The split region key that addresses a subscription within a channel. The
+ * channel comes from the route path; only the region halves travel in the
+ * query/body. `countyCode: "*"` denotes a statewide subscription.
+ */
+export const subscriptionRegionKeySchema = z.object({
   countyCode: z.string().min(1),
   stateCode: z.string().min(1),
 });
-export type SubscriptionKey = z.infer<typeof subscriptionKeySchema>;
+export type SubscriptionRegionKey = z.infer<typeof subscriptionRegionKeySchema>;
 
-export const updateSubscriptionBodySchema = subscriptionKeySchema.extend({
+export const updateSubscriptionBodySchema = subscriptionRegionKeySchema.extend({
   active: z.boolean(),
 });
 export type UpdateSubscriptionBody = z.infer<

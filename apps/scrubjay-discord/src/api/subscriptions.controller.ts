@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   NotFoundException,
+  Param,
   Patch,
   Post,
   Query,
@@ -17,8 +18,8 @@ import {
   createSubscriptionBodySchema,
   type ListSubscriptionsQuery,
   listSubscriptionsQuerySchema,
-  type SubscriptionKey,
-  subscriptionKeySchema,
+  type SubscriptionRegionKey,
+  subscriptionRegionKeySchema,
   type UpdateSubscriptionBody,
   updateSubscriptionBodySchema,
 } from "@scrubjay/api-contracts";
@@ -31,11 +32,11 @@ import { GuildsService } from "./guilds.service";
 import { ZodValidationPipe } from "./zod-validation.pipe";
 
 /** SubscriptionsService takes one region code; the key stores it split. */
-function regionCodeOf(key: SubscriptionKey): string {
+function regionCodeOf(key: SubscriptionRegionKey): string {
   return key.countyCode === "*" ? key.stateCode : key.countyCode;
 }
 
-@Controller("api/v1/subscriptions")
+@Controller("api/v1")
 @UseFilters(ApiExceptionFilter)
 @UseGuards(ApiTokenGuard)
 export class SubscriptionsController {
@@ -45,7 +46,7 @@ export class SubscriptionsController {
     private readonly guilds: GuildsService,
   ) {}
 
-  @Get()
+  @Get("subscriptions")
   async list(
     @Query(new ZodValidationPipe(listSubscriptionsQuerySchema))
     query: ListSubscriptionsQuery,
@@ -57,24 +58,22 @@ export class SubscriptionsController {
     return { subscriptions: await this.repo.listSubscriptions(query) };
   }
 
-  @Post()
+  @Post("channels/:channelId/subscriptions")
   async create(
+    @Param("channelId") channelId: string,
     @Body(new ZodValidationPipe(createSubscriptionBodySchema))
     body: CreateSubscriptionBody,
   ): Promise<CreateSubscriptionResponse> {
     // Unlike the slash-command path, the API can't structurally guarantee a
     // real postable channel — a typo'd id would start ingest for a new state.
-    if (!(await this.guilds.isPostableChannel(body.channelId))) {
+    if (!(await this.guilds.isPostableChannel(channelId))) {
       throw new BadRequestException({
         code: "INVALID_CHANNEL",
         message: "Channel not found or the bot cannot post to it",
       });
     }
     try {
-      const created = await this.service.subscribe(
-        body.channelId,
-        body.regionCode,
-      );
+      const created = await this.service.subscribe(channelId, body.regionCode);
       return { created };
     } catch (err) {
       if (err instanceof InvalidRegionError) {
@@ -87,13 +86,17 @@ export class SubscriptionsController {
     }
   }
 
-  @Patch()
+  @Patch("channels/:channelId/subscriptions")
   async update(
+    @Param("channelId") channelId: string,
     @Body(new ZodValidationPipe(updateSubscriptionBodySchema))
     body: UpdateSubscriptionBody,
   ): Promise<{ updated: true }> {
-    const { active, ...key } = body;
-    const existed = await this.repo.setSubscriptionActive(key, active);
+    const { active, ...region } = body;
+    const existed = await this.repo.setSubscriptionActive(
+      { channelId, ...region },
+      active,
+    );
     if (!existed) {
       throw new NotFoundException({
         code: "NOT_FOUND",
@@ -103,16 +106,15 @@ export class SubscriptionsController {
     return { updated: true };
   }
 
-  @Delete()
+  @Delete("channels/:channelId/subscriptions")
   async remove(
-    @Query(new ZodValidationPipe(subscriptionKeySchema)) key: SubscriptionKey,
+    @Param("channelId") channelId: string,
+    @Query(new ZodValidationPipe(subscriptionRegionKeySchema))
+    region: SubscriptionRegionKey,
   ): Promise<{ deleted: true }> {
     let existed: boolean;
     try {
-      existed = await this.service.unsubscribe(
-        key.channelId,
-        regionCodeOf(key),
-      );
+      existed = await this.service.unsubscribe(channelId, regionCodeOf(region));
     } catch (err) {
       if (err instanceof InvalidRegionError) {
         throw new BadRequestException({
