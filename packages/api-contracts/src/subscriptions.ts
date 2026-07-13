@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { channelIdSchema } from "./common.js";
 
 export const subscriptionSchema = z.object({
   active: z.boolean(),
@@ -10,7 +11,7 @@ export const subscriptionSchema = z.object({
 export type Subscription = z.infer<typeof subscriptionSchema>;
 
 export const listSubscriptionsQuerySchema = z.object({
-  channelId: z.string().min(1).optional(),
+  channelId: channelIdSchema.optional(),
   stateCode: z.string().min(1).optional(),
 });
 export type ListSubscriptionsQuery = z.infer<

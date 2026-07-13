@@ -58,25 +58,31 @@ describe("honest POST status codes (e2e)", () => {
 
   it("a fresh subscribe answers 200 { created: true }", async () => {
     subscribe.mockResolvedValue(true);
-    const res = await post("/api/v1/channels/CH1/subscriptions", {
-      regionCode: "US-CA",
-    });
+    const res = await post(
+      "/api/v1/channels/123456789012345678/subscriptions",
+      {
+        regionCode: "US-CA",
+      },
+    );
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ created: true });
   });
 
   it("a duplicate subscribe answers 200 { created: false }", async () => {
     subscribe.mockResolvedValue(false);
-    const res = await post("/api/v1/channels/CH1/subscriptions", {
-      regionCode: "US-CA",
-    });
+    const res = await post(
+      "/api/v1/channels/123456789012345678/subscriptions",
+      {
+        regionCode: "US-CA",
+      },
+    );
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ created: false });
   });
 
   it("a duplicate filter-add answers 200 { added: false }", async () => {
     addChannelFilter.mockResolvedValue([]);
-    const res = await post("/api/v1/channels/CH1/filters", {
+    const res = await post("/api/v1/channels/123456789012345678/filters", {
       commonName: "Verdin",
     });
     expect(res.status).toBe(200);

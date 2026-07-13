@@ -36,6 +36,17 @@ describe("subscription contracts", () => {
     expect(listSubscriptionsQuerySchema.parse({})).toEqual({});
   });
 
+  it("rejects a non-snowflake channelId filter on the list query", () => {
+    expect(
+      listSubscriptionsQuerySchema.safeParse({ channelId: "CH1" }).success,
+    ).toBe(false);
+    expect(
+      listSubscriptionsQuerySchema.safeParse({
+        channelId: "123456789012345678",
+      }).success,
+    ).toBe(true);
+  });
+
   it("addresses a subscription by its split region key", () => {
     expect(
       subscriptionRegionKeySchema.parse({

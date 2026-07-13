@@ -17,6 +17,7 @@ import {
 import {
   type CreateSubscriptionBody,
   type CreateSubscriptionResponse,
+  channelIdSchema,
   createSubscriptionBodySchema,
   type ListSubscriptionsQuery,
   listSubscriptionsQuerySchema,
@@ -65,7 +66,8 @@ export class SubscriptionsController {
   @Post("channels/:channelId/subscriptions")
   @HttpCode(HttpStatus.OK)
   async create(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
     @Body(new ZodValidationPipe(createSubscriptionBodySchema))
     body: CreateSubscriptionBody,
   ): Promise<CreateSubscriptionResponse> {
@@ -93,7 +95,8 @@ export class SubscriptionsController {
 
   @Patch("channels/:channelId/subscriptions")
   async update(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
     @Body(new ZodValidationPipe(updateSubscriptionBodySchema))
     body: UpdateSubscriptionBody,
   ): Promise<{
@@ -117,7 +120,8 @@ export class SubscriptionsController {
 
   @Delete("channels/:channelId/subscriptions")
   async remove(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
     @Query(new ZodValidationPipe(subscriptionRegionKeySchema))
     region: SubscriptionRegionKey,
   ): Promise<{ deleted: true }> {

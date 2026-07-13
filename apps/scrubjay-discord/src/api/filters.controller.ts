@@ -16,6 +16,7 @@ import {
   type AddFilterBody,
   type AddFilterResponse,
   addFilterBodySchema,
+  channelIdSchema,
   type DeleteFilterQuery,
   deleteFilterQuerySchema,
   type ListFiltersResponse,
@@ -34,7 +35,8 @@ export class FiltersController {
 
   @Get()
   async list(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
   ): Promise<ListFiltersResponse> {
     return { filters: await this.repo.channelFilters(channelId) };
   }
@@ -45,7 +47,8 @@ export class FiltersController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async add(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
     @Body(new ZodValidationPipe(addFilterBodySchema)) body: AddFilterBody,
   ): Promise<AddFilterResponse> {
     const rows = await this.repo.addChannelFilter(channelId, body.commonName);
@@ -54,7 +57,8 @@ export class FiltersController {
 
   @Delete()
   async remove(
-    @Param("channelId") channelId: string,
+    @Param("channelId", new ZodValidationPipe(channelIdSchema))
+    channelId: string,
     @Query(new ZodValidationPipe(deleteFilterQuerySchema))
     query: DeleteFilterQuery,
   ): Promise<{ deleted: true }> {

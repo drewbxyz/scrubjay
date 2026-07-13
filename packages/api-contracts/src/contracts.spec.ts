@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pendingAlertSchema } from "./alerts.js";
+import { channelIdSchema } from "./common.js";
 import { listDeliveriesQuerySchema } from "./deliveries.js";
 import { stateCodeSchema } from "./ebird.js";
 import {
@@ -12,6 +13,30 @@ import { listObservationsQuerySchema } from "./observations.js";
 import { regionsResponseSchema } from "./regions.js";
 
 describe("api contracts", () => {
+  it("accepts a real-shaped Discord snowflake channel id", () => {
+    expect(channelIdSchema.safeParse("123456789012345678").success).toBe(true);
+  });
+
+  it.each([
+    ["non-numeric", "CH1"],
+    ["empty string", ""],
+    ["16 digits (too short)", "1234567890123456"],
+    ["21 digits (too long)", "123456789012345678901"],
+  ])("rejects a channel id that is %s", (_label, value) => {
+    expect(channelIdSchema.safeParse(value).success).toBe(false);
+  });
+
+  it("rejects a non-snowflake channelId filter on the deliveries list query", () => {
+    expect(
+      listDeliveriesQuerySchema.safeParse({ channelId: "CH1" }).success,
+    ).toBe(false);
+    expect(
+      listDeliveriesQuerySchema.safeParse({
+        channelId: "123456789012345678",
+      }).success,
+    ).toBe(true);
+  });
+
   it("trims and requires a non-empty filter common name", () => {
     expect(addFilterBodySchema.parse({ commonName: " Verdin " })).toEqual({
       commonName: "Verdin",

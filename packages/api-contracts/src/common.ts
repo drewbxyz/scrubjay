@@ -15,3 +15,7 @@ export const paginationQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+
+/** Discord snowflake id. */
+export const channelIdSchema = z.string().regex(/^\d{17,20}$/);
+export type ChannelId = z.infer<typeof channelIdSchema>;

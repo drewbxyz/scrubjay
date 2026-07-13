@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationQuerySchema } from "./common.js";
+import { channelIdSchema, paginationQuerySchema } from "./common.js";
 
 export const deliveryStatusSchema = z.enum([
   "sent",
@@ -22,7 +22,7 @@ export type Delivery = z.infer<typeof deliverySchema>;
 
 export const listDeliveriesQuerySchema = paginationQuerySchema.extend({
   alertId: z.string().min(1).optional(),
-  channelId: z.string().min(1).optional(),
+  channelId: channelIdSchema.optional(),
   status: deliveryStatusSchema.optional(),
 });
 export type ListDeliveriesQuery = z.infer<typeof listDeliveriesQuerySchema>;
