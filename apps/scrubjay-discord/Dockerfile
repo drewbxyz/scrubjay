@@ -1,5 +1,5 @@
 # Base stage: Set up Node.js and pnpm
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 # pnpm 11 installs global bins to $PNPM_HOME/bin (older pnpm used $PNPM_HOME)
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
@@ -25,7 +25,7 @@ RUN pnpm install --frozen-lockfile
 COPY turbo.json turbo.json
 RUN turbo run build --filter=scrubjay-discord
 
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /usr/src/app
  
@@ -51,7 +51,7 @@ WORKDIR /usr/src/app/apps/scrubjay-discord
 
 # Single quotes are load-bearing: backticks or ${...} in double quotes would
 # be expanded by /bin/sh before node runs. start-period covers migrations +
-# Discord login. Alpine has no curl; node 22's global fetch does the probe.
+# Discord login. Alpine has no curl; node 24's global fetch does the probe.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD node -e 'fetch("http://127.0.0.1:" + (process.env.PORT ?? 3000) + "/health").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'
 CMD ["node", "dist/main.js"]

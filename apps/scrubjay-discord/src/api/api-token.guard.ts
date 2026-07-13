@@ -17,13 +17,19 @@ export class ApiTokenGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
-    // Default-closed: only allowlisted public paths (PUBLIC_PATHS, e.g.
-    // /health) skip auth. Everything else — every /api/ route, unknown paths,
-    // and case variants like /API/... (Express routes case-insensitively) —
-    // requires the bearer token. This guard is global when ApiModule is
-    // registered (APP_GUARD), so it also covers controllers that forget the
-    // per-route @UseGuards decorator. New public routes MUST be added to the
-    // PUBLIC_PATHS allowlist explicitly.
+    // Default-closed: for every MATCHED route, only allowlisted public paths
+    // (PUBLIC_PATHS, e.g. /health) skip auth. Everything else — every matched
+    // /api/ route and case variants like /API/... (Express routes
+    // case-insensitively) — requires the bearer token. This guard is global
+    // when ApiModule is registered (APP_GUARD), so it also covers controllers
+    // that forget the per-route @UseGuards decorator. New public routes MUST be
+    // added to the PUBLIC_PATHS allowlist explicitly.
+    //
+    // Guards never run on UNMATCHED routes: an unknown /api/ path never reaches
+    // here — the router's NotFoundException goes straight to APP_FILTER
+    // (ApiExceptionFilter), which returns an unauthenticated 404 envelope. Real
+    // routes answer 401 when unauthenticated, so this is a mild route-existence
+    // oracle; that behavior is accepted.
     if (isPublicPath(requestPathname(request))) return true;
 
     const expected = this.configService.get("SCRUBJAY_API_TOKEN", {

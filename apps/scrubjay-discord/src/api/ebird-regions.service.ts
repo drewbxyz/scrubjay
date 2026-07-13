@@ -55,7 +55,19 @@ export class EBirdRegionsService {
       });
     }
 
-    const parsed = upstreamSchema.safeParse(await response.json());
+    // A 200 with a non-JSON body (proxy error page, truncated response) is an
+    // upstream failure, not a client error.
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new BadGatewayException({
+        code: "UPSTREAM",
+        message: `eBird returned a non-JSON body for ${stateCode}`,
+      });
+    }
+
+    const parsed = upstreamSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadGatewayException({
         code: "UPSTREAM",

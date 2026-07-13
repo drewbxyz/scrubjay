@@ -96,12 +96,12 @@ ever gains a second consumer.
 | --- | --- |
 | `GET /api/v1/guilds` | Guilds the bot is in, each with text channels where the bot can post (permission-checked via Discord client). Powers the channel picker. |
 | `GET /api/v1/subscriptions` | List, filterable by channel/state. |
-| `POST /api/v1/subscriptions` | Create; same validation as `/subscribe`. |
-| `PATCH /api/v1/subscriptions/...` | Toggle `active`. |
-| `DELETE /api/v1/subscriptions/...` | Delete. |
+| `POST /api/v1/channels/:channelId/subscriptions` | Create (idempotent ensure); same validation as `/subscribe`. Region code in body. |
+| `PATCH /api/v1/channels/:channelId/subscriptions` | Toggle `active`. Region key in body. |
+| `DELETE /api/v1/channels/:channelId/subscriptions` | Delete. Region key in query. |
 | `GET /api/v1/channels/:channelId/filters` | List a channel's species filters. |
 | `POST /api/v1/channels/:channelId/filters` | Add filter (free-text common name, matching 👎 semantics). |
-| `DELETE /api/v1/channels/:channelId/filters/...` | Remove filter. |
+| `DELETE /api/v1/channels/:channelId/filters` | Remove filter (`commonName` in query). |
 | `GET /api/v1/regions` | Read-only derived ingest states + the subscriptions driving each. |
 | `GET /api/v1/observations` | Paginated; filter by state/county/species/date. |
 | `GET /api/v1/deliveries` | Paginated; filter by channel/status/alert. |
@@ -109,7 +109,10 @@ ever gains a second consumer.
 | `GET /api/v1/ebird/regions/:stateCode/counties` | Cached proxy to eBird's region API, for county pickers. |
 
 Subscription identity is the composite key `(channelId, stateCode,
-countyCode)`; PATCH/DELETE address it via those three values.
+countyCode)`. The mutation routes are channel-scoped, matching the
+channel-filters shape: `channelId` is a path param, and PATCH/DELETE address
+the remaining `(stateCode, countyCode)` via the request body and query string
+respectively.
 
 ## Portal app
 

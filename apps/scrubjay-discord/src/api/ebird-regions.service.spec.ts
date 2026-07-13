@@ -41,6 +41,15 @@ describe("EBirdRegionsService", () => {
     ).rejects.toThrow(BadGatewayException);
   });
 
+  it("maps an unparseable 200 body to BadGatewayException", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("<html>not json</html>", { status: 200 }),
+    );
+    await expect(
+      new EBirdRegionsService(config).countiesForState("US-CA"),
+    ).rejects.toThrow(BadGatewayException);
+  });
+
   it("maps a network/timeout failure to BadGatewayException", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("boom"));
     await expect(
