@@ -3,12 +3,13 @@ import {
   type CountiesResponse,
   stateCodeSchema,
 } from "@scrubjay/api-contracts";
+import { API_PREFIX } from "./api.constants";
 import { ApiExceptionFilter } from "./api-exception.filter";
 import { ApiTokenGuard } from "./api-token.guard";
 import { EBirdRegionsService } from "./ebird-regions.service";
 import { ZodValidationPipe } from "./zod-validation.pipe";
 
-@Controller("api/v1/ebird/regions")
+@Controller(`${API_PREFIX}/ebird/regions`)
 @UseFilters(ApiExceptionFilter)
 @UseGuards(ApiTokenGuard)
 export class EBirdRegionsController {

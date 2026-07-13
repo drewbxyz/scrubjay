@@ -7,12 +7,13 @@ import {
 } from "@scrubjay/api-contracts";
 import { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.repository";
+import { API_PREFIX } from "./api.constants";
 import { ApiExceptionFilter } from "./api-exception.filter";
 import { ApiTokenGuard } from "./api-token.guard";
 import { OpsRepository } from "./ops.repository";
 import { ZodValidationPipe } from "./zod-validation.pipe";
 
-@Controller("api/v1")
+@Controller(API_PREFIX)
 @UseFilters(ApiExceptionFilter)
 @UseGuards(ApiTokenGuard)
 export class OpsController {

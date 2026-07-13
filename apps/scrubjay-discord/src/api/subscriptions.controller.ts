@@ -28,6 +28,7 @@ import {
 import { InvalidRegionError } from "@/features/subscriptions/invalid-region.error";
 import { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.repository";
 import { SubscriptionsService } from "@/features/subscriptions/subscriptions.service";
+import { API_PREFIX } from "./api.constants";
 import { ApiExceptionFilter } from "./api-exception.filter";
 import { ApiTokenGuard } from "./api-token.guard";
 import { GuildsService } from "./guilds.service";
@@ -38,7 +39,7 @@ function regionCodeOf(key: SubscriptionRegionKey): string {
   return key.countyCode === "*" ? key.stateCode : key.countyCode;
 }
 
-@Controller("api/v1")
+@Controller(API_PREFIX)
 @UseFilters(ApiExceptionFilter)
 @UseGuards(ApiTokenGuard)
 export class SubscriptionsController {

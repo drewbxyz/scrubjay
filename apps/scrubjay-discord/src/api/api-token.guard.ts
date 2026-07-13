@@ -8,18 +8,27 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import type { AppConfig } from "@/core/config/config.schema";
+import { API_PATH_PREFIX } from "./api.constants";
 
 @Injectable()
 export class ApiTokenGuard implements CanActivate {
   constructor(private readonly configService: ConfigService<AppConfig, true>) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<Request>();
+
+    // Fail-open outside /api/: /health and any future non-API route stay
+    // reachable without a token. Everything under /api/ is guarded — including
+    // controllers that forget the per-route @UseGuards decorator, since this
+    // guard is also registered module-globally as an APP_GUARD.
+    const path = request.originalUrl ?? request.url ?? "";
+    if (!path.startsWith(API_PATH_PREFIX)) return true;
+
     const expected = this.configService.get("SCRUBJAY_API_TOKEN", {
       infer: true,
     });
     if (!expected) throw new UnauthorizedException();
 
-    const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException();
 

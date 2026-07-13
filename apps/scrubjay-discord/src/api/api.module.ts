@@ -1,9 +1,10 @@
 import { Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { DispatchModule } from "@/features/dispatch/dispatch.module";
 import { FiltersModule } from "@/features/filters/filters.module";
 import { SubscriptionsModule } from "@/features/subscriptions/subscriptions.module";
 import { ApiExceptionFilter } from "./api-exception.filter";
+import { ApiTokenGuard } from "./api-token.guard";
 import { EBirdRegionsController } from "./ebird-regions.controller";
 import { EBirdRegionsService } from "./ebird-regions.service";
 import { FiltersController } from "./filters.controller";
@@ -31,6 +32,11 @@ import { SubscriptionsController } from "./subscriptions.controller";
     // (malformed JSON bodies, 404s for unknown /api/* paths); scoped to this
     // module so the envelope only exists when the API is enabled.
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
+    // Fail-closed: every /api/ route is guarded even if a controller forgets
+    // its per-route @UseGuards. The guard fails open outside /api/ so /health
+    // stays reachable. Kept alongside the per-controller decorators as
+    // defense-in-depth, mirroring the deliberate dual filter registration.
+    { provide: APP_GUARD, useClass: ApiTokenGuard },
     EBirdRegionsService,
     GuildsService,
     OpsRepository,

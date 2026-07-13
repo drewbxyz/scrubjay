@@ -21,11 +21,12 @@ import {
   type ListFiltersResponse,
 } from "@scrubjay/api-contracts";
 import { FiltersRepository } from "@/features/filters/filters.repository";
+import { API_PREFIX } from "./api.constants";
 import { ApiExceptionFilter } from "./api-exception.filter";
 import { ApiTokenGuard } from "./api-token.guard";
 import { ZodValidationPipe } from "./zod-validation.pipe";
 
-@Controller("api/v1/channels/:channelId/filters")
+@Controller(`${API_PREFIX}/channels/:channelId/filters`)
 @UseFilters(ApiExceptionFilter)
 @UseGuards(ApiTokenGuard)
 export class FiltersController {

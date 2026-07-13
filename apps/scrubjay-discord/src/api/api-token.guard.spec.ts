@@ -7,10 +7,13 @@ import { ApiTokenGuard } from "./api-token.guard";
 
 const TOKEN = "a".repeat(32);
 
-function contextWithAuth(header?: string): ExecutionContext {
+function contextWithAuth(
+  header?: string,
+  url = "/api/v1/thing",
+): ExecutionContext {
   return {
     switchToHttp: () => ({
-      getRequest: () => ({ headers: { authorization: header } }),
+      getRequest: () => ({ headers: { authorization: header }, url }),
     }),
   } as unknown as ExecutionContext;
 }
@@ -45,5 +48,11 @@ describe("ApiTokenGuard", () => {
     expect(() =>
       guardWithToken(undefined).canActivate(contextWithAuth(`Bearer ${TOKEN}`)),
     ).toThrow(UnauthorizedException);
+  });
+
+  it("allows non-API paths without a token (fail-open outside /api/)", () => {
+    expect(
+      guardWithToken(TOKEN).canActivate(contextWithAuth(undefined, "/health")),
+    ).toBe(true);
   });
 });
