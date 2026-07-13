@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { InvalidRegionError } from "@/features/subscriptions/invalid-region.error";
 import type { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.repository";
 import type { SubscriptionsService } from "@/features/subscriptions/subscriptions.service";
+import type { GuildsService } from "./guilds.service";
 import { SubscriptionsController } from "./subscriptions.controller";
 
 const row = {
@@ -15,12 +16,16 @@ const row = {
 };
 
 function build(overrides: {
+  guilds?: Partial<GuildsService>;
   repo?: Partial<SubscriptionsRepository>;
   service?: Partial<SubscriptionsService>;
 }) {
   return new SubscriptionsController(
     overrides.repo as SubscriptionsRepository,
     overrides.service as SubscriptionsService,
+    (overrides.guilds ?? {
+      isPostableChannel: async () => true,
+    }) as GuildsService,
   );
 }
 
@@ -45,6 +50,18 @@ describe("SubscriptionsController", () => {
     });
     expect(subscribe).toHaveBeenCalledWith("CH1", "us-ca");
     expect(result).toEqual({ created: false });
+  });
+
+  it("rejects a create for a channel the bot cannot post to", async () => {
+    const subscribe = vi.fn();
+    const controller = build({
+      guilds: { isPostableChannel: async () => false },
+      service: { subscribe },
+    });
+    await expect(
+      controller.create({ channelId: "BOGUS", regionCode: "US-CA" }),
+    ).rejects.toThrow(BadRequestException);
+    expect(subscribe).not.toHaveBeenCalled();
   });
 
   it("maps InvalidRegionError to a 400 INVALID_REGION", async () => {

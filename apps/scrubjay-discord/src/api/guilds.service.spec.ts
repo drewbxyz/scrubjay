@@ -1,5 +1,5 @@
 import type { Client } from "discord.js";
-import { ChannelType } from "discord.js";
+import { ChannelType, DiscordAPIError } from "discord.js";
 import { describe, expect, it } from "vitest";
 import { GuildsService } from "./guilds.service";
 
@@ -77,5 +77,60 @@ describe("GuildsService", () => {
     ]);
     const result = await new GuildsService(client).listGuilds();
     expect(result.guilds.map((g) => g.name)).toEqual(["Alpha", "Zeta"]);
+  });
+});
+
+describe("isPostableChannel", () => {
+  function clientFetching(channel: unknown): Client {
+    return {
+      channels: { fetch: async () => channel },
+    } as unknown as Client;
+  }
+
+  function postableChannel(opts: { sendable?: boolean; type?: ChannelType }) {
+    return {
+      guild: { members: { me: {} } },
+      permissionsFor: () => ({ has: () => opts.sendable ?? true }),
+      type: opts.type ?? ChannelType.GuildText,
+    };
+  }
+
+  it("accepts a text channel the bot can post to", async () => {
+    const service = new GuildsService(clientFetching(postableChannel({})));
+    await expect(service.isPostableChannel("CH1")).resolves.toBe(true);
+  });
+
+  it("rejects a channel Discord does not know", async () => {
+    const client = {
+      channels: {
+        fetch: async () => {
+          throw new DiscordAPIError(
+            { code: 10003, message: "Unknown Channel" },
+            10003,
+            404,
+            "GET",
+            "/channels/BOGUS",
+            {},
+          );
+        },
+      },
+    } as unknown as Client;
+    await expect(
+      new GuildsService(client).isPostableChannel("BOGUS"),
+    ).resolves.toBe(false);
+  });
+
+  it("rejects a non-text channel", async () => {
+    const service = new GuildsService(
+      clientFetching(postableChannel({ type: ChannelType.GuildVoice })),
+    );
+    await expect(service.isPostableChannel("CH1")).resolves.toBe(false);
+  });
+
+  it("rejects a channel the bot cannot send to", async () => {
+    const service = new GuildsService(
+      clientFetching(postableChannel({ sendable: false })),
+    );
+    await expect(service.isPostableChannel("CH1")).resolves.toBe(false);
   });
 });

@@ -21,6 +21,7 @@ export const deliverySchema = z.object({
 export type Delivery = z.infer<typeof deliverySchema>;
 
 export const listDeliveriesQuerySchema = paginationQuerySchema.extend({
+  alertId: z.string().min(1).optional(),
   channelId: z.string().min(1).optional(),
   status: deliveryStatusSchema.optional(),
 });

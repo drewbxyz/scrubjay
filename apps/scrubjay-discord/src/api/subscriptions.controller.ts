@@ -27,6 +27,7 @@ import { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.
 import { SubscriptionsService } from "@/features/subscriptions/subscriptions.service";
 import { ApiExceptionFilter } from "./api-exception.filter";
 import { ApiTokenGuard } from "./api-token.guard";
+import { GuildsService } from "./guilds.service";
 import { ZodValidationPipe } from "./zod-validation.pipe";
 
 /** SubscriptionsService takes one region code; the key stores it split. */
@@ -41,6 +42,7 @@ export class SubscriptionsController {
   constructor(
     private readonly repo: SubscriptionsRepository,
     private readonly service: SubscriptionsService,
+    private readonly guilds: GuildsService,
   ) {}
 
   @Get()
@@ -60,6 +62,14 @@ export class SubscriptionsController {
     @Body(new ZodValidationPipe(createSubscriptionBodySchema))
     body: CreateSubscriptionBody,
   ): Promise<CreateSubscriptionResponse> {
+    // Unlike the slash-command path, the API can't structurally guarantee a
+    // real postable channel — a typo'd id would start ingest for a new state.
+    if (!(await this.guilds.isPostableChannel(body.channelId))) {
+      throw new BadRequestException({
+        code: "INVALID_CHANNEL",
+        message: "Channel not found or the bot cannot post to it",
+      });
+    }
     try {
       const created = await this.service.subscribe(
         body.channelId,

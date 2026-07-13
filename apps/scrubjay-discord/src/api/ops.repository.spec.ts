@@ -87,4 +87,16 @@ describe("listDeliveries", () => {
     expect(failed.deliveries).toHaveLength(1);
     expect(failed.deliveries[0]?.channelId).toBe("CH2");
   });
+
+  it("filters by alert id", async () => {
+    await seedDelivery(db, { alertId: "a:1", channelId: "CH1" });
+    await seedDelivery(db, { alertId: "a:2", channelId: "CH1" });
+    const result = await repo.listDeliveries({
+      alertId: "a:2",
+      limit: 50,
+      offset: 0,
+    });
+    expect(result.deliveries).toHaveLength(1);
+    expect(result.deliveries[0]?.alertId).toBe("a:2");
+  });
 });

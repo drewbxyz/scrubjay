@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import type { GuildsResponse } from "@scrubjay/api-contracts";
-import { ChannelType, Client, PermissionFlagsBits } from "discord.js";
+import {
+  type Channel,
+  ChannelType,
+  Client,
+  DiscordAPIError,
+  PermissionFlagsBits,
+} from "discord.js";
 
 @Injectable()
 export class GuildsService {
@@ -33,5 +39,29 @@ export class GuildsService {
     }
     guilds.sort((a, b) => a.name.localeCompare(b.name));
     return { guilds };
+  }
+
+  /** True when the id is a guild text channel the bot can post to. */
+  async isPostableChannel(channelId: string): Promise<boolean> {
+    let channel: Channel | null;
+    try {
+      channel = await this.client.channels.fetch(channelId);
+    } catch (err) {
+      // Unknown channel / missing access — anything Discord itself rejects.
+      if (err instanceof DiscordAPIError) {
+        return false;
+      }
+      throw err;
+    }
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      return false;
+    }
+    const me = channel.guild.members.me;
+    if (!me) {
+      return false;
+    }
+    return channel
+      .permissionsFor(me)
+      .has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel]);
   }
 }

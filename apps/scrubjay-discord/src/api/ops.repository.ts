@@ -71,6 +71,7 @@ export class OpsRepository {
 
   async listDeliveries(query: ListDeliveriesQuery) {
     const conditions = [
+      query.alertId ? eq(deliveries.alertId, query.alertId) : undefined,
       query.channelId ? eq(deliveries.channelId, query.channelId) : undefined,
       query.status ? eq(deliveries.status, query.status) : undefined,
     ].filter((c) => c !== undefined);
