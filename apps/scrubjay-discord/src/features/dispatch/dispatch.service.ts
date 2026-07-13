@@ -1,14 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { metrics } from "@opentelemetry/api";
 import { MessageSenderService } from "@/discord/message-sender.service";
+import { ALERT_OUTCOMES_COUNTER } from "./alert-metrics";
 import {
   AlertQueue,
   type AlertRef,
   type PendingEBirdAlert,
 } from "./alert-queue.service";
-import { ALERT_OUTCOMES_COUNTER } from "./alert-metrics";
 import { classifySendError } from "./discord-error";
-import { planEBirdAlerts } from "./ebird-alert.formatter";
+import { type DispatchPlan, planEBirdAlerts } from "./ebird-alert.formatter";
 
 /** Sweep scan floor — matches the eBird fetch lookback (back=7). */
 const SWEEP_FLOOR_MS = 7 * 24 * 60 * 60 * 1000;
@@ -50,20 +50,33 @@ export class DispatchService {
       this.logger.debug(`No new alerts since ${since.toISOString()}`);
     }
 
-    let sentCount = 0;
+    // Channels are independent rate-limit buckets: concurrent across, sequential within.
+    const plansByChannel = new Map<string, DispatchPlan[]>();
     for (const plan of planEBirdAlerts(pending)) {
-      const refs = plan.alerts.map(toAlertRef);
-      try {
-        await this.sender.send(plan.channelId, plan.message);
-        // Record immediately: a crash now loses at most this one plan's
-        // records instead of the whole tick's (at-least-once, spec §2).
-        await this.alertQueue.record(refs, "sent");
-        this.alerts.add(refs.length, { status: "sent" });
-        sentCount += refs.length;
-      } catch (err) {
-        await this.handleSendFailure(plan.channelId, refs, err);
+      const channelPlans = plansByChannel.get(plan.channelId);
+      if (channelPlans) {
+        channelPlans.push(plan);
+      } else {
+        plansByChannel.set(plan.channelId, [plan]);
       }
     }
+
+    let sentCount = 0;
+    await Promise.all(
+      Array.from(plansByChannel.values(), async (plans) => {
+        for (const plan of plans) {
+          const refs = plan.alerts.map(toAlertRef);
+          try {
+            await this.sender.send(plan.channelId, plan.message);
+            await this.alertQueue.record(refs, "sent");
+            this.alerts.add(refs.length, { status: "sent" });
+            sentCount += refs.length;
+          } catch (err) {
+            await this.handleSendFailure(plan.channelId, refs, err);
+          }
+        }
+      }),
+    );
 
     if (sentCount > 0) {
       this.logger.log(`Delivered ${sentCount} alerts`);

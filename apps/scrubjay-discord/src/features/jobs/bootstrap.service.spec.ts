@@ -1,5 +1,13 @@
 import { Logger } from "@nestjs/common";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { AlertQueue } from "@/features/dispatch/alert-queue.service";
 import type { IngestService } from "@/features/ingest/ingest.service";
 import type { SourcesRepository } from "@/features/sources/sources.repository";

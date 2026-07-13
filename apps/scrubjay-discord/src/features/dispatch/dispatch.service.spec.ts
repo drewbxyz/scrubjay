@@ -54,7 +54,10 @@ const metricHarness = registerMetricHarness();
 
 async function alertCount(status: string): Promise<number | undefined> {
   const metric = await metricHarness.collect("scrubjay.dispatch.alerts");
-  return metric?.dataPoints.find((p) => p.attributes.status === status)?.value;
+  const value = metric?.dataPoints.find(
+    (p) => p.attributes.status === status,
+  )?.value;
+  return typeof value === "number" ? value : undefined;
 }
 
 describe("DispatchService", () => {
@@ -131,8 +134,16 @@ describe("DispatchService", () => {
 
   it("counts expired alerts swept off the queue", async () => {
     alertQueueMock.sweepExpired.mockResolvedValue([
-      { alertId: "verfly:S9", channelId: "CH1", comName: "Vermilion Flycatcher" },
-      { alertId: "verfly:S10", channelId: "CH1", comName: "Vermilion Flycatcher" },
+      {
+        alertId: "verfly:S9",
+        channelId: "CH1",
+        comName: "Vermilion Flycatcher",
+      },
+      {
+        alertId: "verfly:S10",
+        channelId: "CH1",
+        comName: "Vermilion Flycatcher",
+      },
     ]);
 
     await service.dispatchSince(since);
@@ -207,20 +218,71 @@ describe("DispatchService", () => {
 
   it("records each plan immediately after its send (per-plan, not batched)", async () => {
     alertQueueMock.pendingEBirdAlerts.mockResolvedValue([
-      makeAlert({ channelId: "CH1" }),
-      makeAlert({ channelId: "CH2" }),
+      makeAlert({ speciesCode: "verfly" }),
+      makeAlert({ comName: "American Golden-Plover", speciesCode: "amgplo" }),
     ]);
     const calls: string[] = [];
-    senderMock.send.mockImplementation(async (channelId: string) => {
-      calls.push(`send:${channelId}`);
+    senderMock.send.mockImplementation(async () => {
+      calls.push("send");
     });
     alertQueueMock.record.mockImplementation(async (alerts: unknown[]) => {
-      calls.push(`record:${(alerts as { channelId: string }[])[0].channelId}`);
+      calls.push(
+        `record:${(alerts as { speciesCode: string }[])[0].speciesCode}`,
+      );
     });
 
     await service.dispatchSince(since);
 
-    expect(calls).toEqual(["send:CH1", "record:CH1", "send:CH2", "record:CH2"]);
+    expect(calls).toEqual(["send", "record:verfly", "send", "record:amgplo"]);
+  });
+
+  it("sends to different channels concurrently", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([
+      makeAlert({ channelId: "CH1" }),
+      makeAlert({ channelId: "CH2" }),
+    ]);
+    const events: string[] = [];
+    senderMock.send.mockImplementation(
+      (channelId: string) =>
+        new Promise<void>((resolve) => {
+          events.push(`start:${channelId}`);
+          setTimeout(
+            () => {
+              events.push(`end:${channelId}`);
+              resolve();
+            },
+            channelId === "CH1" ? 30 : 1,
+          );
+        }),
+    );
+
+    await service.dispatchSince(since);
+
+    expect(events).toEqual(["start:CH1", "start:CH2", "end:CH2", "end:CH1"]);
+  });
+
+  it("keeps sends within one channel sequential", async () => {
+    alertQueueMock.pendingEBirdAlerts.mockResolvedValue([
+      makeAlert({ speciesCode: "verfly" }),
+      makeAlert({ comName: "American Golden-Plover", speciesCode: "amgplo" }),
+    ]);
+    let inFlight = 0;
+    const observedInFlight: number[] = [];
+    senderMock.send.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          inFlight += 1;
+          observedInFlight.push(inFlight);
+          setTimeout(() => {
+            inFlight -= 1;
+            resolve();
+          }, 5);
+        }),
+    );
+
+    await service.dispatchSince(since);
+
+    expect(observedInFlight).toEqual([1, 1]);
   });
 
   it("records a permanent permission failure as failed without deactivating", async () => {

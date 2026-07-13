@@ -3,7 +3,7 @@
  *  instruments only when name + description + unit all match, so both sites
  *  MUST build from this one constant. */
 export const ALERT_OUTCOMES_COUNTER = {
-  name: "scrubjay.dispatch.alerts",
   description: "Alert delivery outcomes by status",
+  name: "scrubjay.dispatch.alerts",
   unit: "{alert}",
 } as const;
