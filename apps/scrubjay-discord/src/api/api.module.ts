@@ -32,10 +32,11 @@ import { SubscriptionsController } from "./subscriptions.controller";
     // (malformed JSON bodies, 404s for unknown /api/* paths); scoped to this
     // module so the envelope only exists when the API is enabled.
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
-    // Fail-closed: every /api/ route is guarded even if a controller forgets
-    // its per-route @UseGuards. The guard fails open outside /api/ so /health
-    // stays reachable. Kept alongside the per-controller decorators as
-    // defense-in-depth, mirroring the deliberate dual filter registration.
+    // Default-closed: every route is guarded even if a controller forgets its
+    // per-route @UseGuards. Only allowlisted public paths (PUBLIC_PATHS, e.g.
+    // /health) skip auth — new public routes must be added there explicitly.
+    // Kept alongside the per-controller decorators as defense-in-depth,
+    // mirroring the deliberate dual filter registration.
     { provide: APP_GUARD, useClass: ApiTokenGuard },
     EBirdRegionsService,
     GuildsService,

@@ -18,6 +18,14 @@ function contextWithAuth(
   } as unknown as ExecutionContext;
 }
 
+function contextWithUrls(originalUrl: string, url: string): ExecutionContext {
+  return {
+    switchToHttp: () => ({
+      getRequest: () => ({ headers: {}, originalUrl, url }),
+    }),
+  } as unknown as ExecutionContext;
+}
+
 function guardWithToken(token?: string): ApiTokenGuard {
   const config = {
     get: () => token,
@@ -50,9 +58,54 @@ describe("ApiTokenGuard", () => {
     ).toThrow(UnauthorizedException);
   });
 
-  it("allows non-API paths without a token (fail-open outside /api/)", () => {
+  it("allows an allowlisted public path without a token", () => {
     expect(
       guardWithToken(TOKEN).canActivate(contextWithAuth(undefined, "/health")),
     ).toBe(true);
+  });
+
+  it("allows an allowlisted path case-insensitively (Express routes it)", () => {
+    expect(
+      guardWithToken(TOKEN).canActivate(contextWithAuth(undefined, "/HEALTH")),
+    ).toBe(true);
+  });
+
+  it("allows an allowlisted path with a query string (query stripped)", () => {
+    expect(
+      guardWithToken(TOKEN).canActivate(
+        contextWithAuth(undefined, "/health?verbose=1"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a case-variant API path without a token", () => {
+    expect(() =>
+      guardWithToken(TOKEN).canActivate(
+        contextWithAuth(undefined, "/API/v1/guilds"),
+      ),
+    ).toThrow(UnauthorizedException);
+  });
+
+  it("rejects an unknown non-API path without a token (default-closed)", () => {
+    expect(() =>
+      guardWithToken(TOKEN).canActivate(contextWithAuth(undefined, "/foo")),
+    ).toThrow(UnauthorizedException);
+  });
+
+  it("prefers originalUrl over url when deciding the path", () => {
+    // originalUrl is allowlisted, url is not: the allow decision must follow
+    // originalUrl.
+    expect(
+      guardWithToken(TOKEN).canActivate(
+        contextWithUrls("/health", "/api/v1/thing"),
+      ),
+    ).toBe(true);
+
+    // The inverse: originalUrl is guarded, url is public — must be rejected.
+    expect(() =>
+      guardWithToken(TOKEN).canActivate(
+        contextWithUrls("/api/v1/thing", "/health"),
+      ),
+    ).toThrow(UnauthorizedException);
   });
 });

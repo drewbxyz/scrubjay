@@ -8,7 +8,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import type { AppConfig } from "@/core/config/config.schema";
-import { API_PATH_PREFIX } from "./api.constants";
+import { isPublicPath, requestPathname } from "./api.constants";
 
 @Injectable()
 export class ApiTokenGuard implements CanActivate {
@@ -17,12 +17,14 @@ export class ApiTokenGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
-    // Fail-open outside /api/: /health and any future non-API route stay
-    // reachable without a token. Everything under /api/ is guarded — including
-    // controllers that forget the per-route @UseGuards decorator, since this
-    // guard is also registered module-globally as an APP_GUARD.
-    const path = request.originalUrl ?? request.url ?? "";
-    if (!path.startsWith(API_PATH_PREFIX)) return true;
+    // Default-closed: only allowlisted public paths (PUBLIC_PATHS, e.g.
+    // /health) skip auth. Everything else — every /api/ route, unknown paths,
+    // and case variants like /API/... (Express routes case-insensitively) —
+    // requires the bearer token. This guard is global when ApiModule is
+    // registered (APP_GUARD), so it also covers controllers that forget the
+    // per-route @UseGuards decorator. New public routes MUST be added to the
+    // PUBLIC_PATHS allowlist explicitly.
+    if (isPublicPath(requestPathname(request))) return true;
 
     const expected = this.configService.get("SCRUBJAY_API_TOKEN", {
       infer: true,

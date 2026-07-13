@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { BaseExceptionFilter } from "@nestjs/core";
 import type { Request, Response } from "express";
-import { API_PATH_PREFIX } from "./api.constants";
+import { API_PATH_PREFIX, requestPathname } from "./api.constants";
 
 /**
  * Renders every /api/* error as the contracts' `{ error: {...} }` envelope.
@@ -36,8 +36,10 @@ export class ApiExceptionFilter extends BaseExceptionFilter {
     }
 
     // Only /api/* responses use the contracts' envelope; everything else
-    // (notably /health) keeps Nest's default error shape.
-    const path = request.originalUrl ?? request.url ?? "";
+    // (notably /health) keeps Nest's default error shape. Normalize case and
+    // strip the query string so case-variant API paths (/API/... — Express
+    // routes case-insensitively) still get the envelope.
+    const path = requestPathname(request);
     if (!path.startsWith(API_PATH_PREFIX)) {
       super.catch(exception, host);
       return;

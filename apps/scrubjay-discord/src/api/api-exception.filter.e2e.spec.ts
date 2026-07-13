@@ -93,13 +93,27 @@ describe("ApiExceptionFilter (e2e)", () => {
     expect(body).toEqual({ ok: true });
   });
 
-  it("leaves non-/api routes reachable without a token", async () => {
+  it("leaves the allowlisted /health route reachable without a token", async () => {
     const url = await app.getUrl();
     const res = await fetch(`${url}/health`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body).toEqual({ status: "ok" });
+  });
+
+  it("guards a case-variant /API/ route with the envelope (401)", async () => {
+    // Express routes case-insensitively, so /API/v1/probe reaches the handler;
+    // the default-closed guard must still demand a token and the filter must
+    // still envelope the 401.
+    const url = await app.getUrl();
+    const res = await fetch(`${url}/API/v1/probe`);
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body.error.code).toBe("UNAUTHORIZED");
+    expect(typeof body.error.message).toBe("string");
+    expect(body.statusCode).toBeUndefined();
   });
 
   it("envelopes malformed JSON bodies as a 400 (body-parser bypass)", async () => {
@@ -128,8 +142,13 @@ describe("ApiExceptionFilter (e2e)", () => {
   });
 
   it("leaves non-/api errors in Nest's default shape", async () => {
+    // /other/boom is not allowlisted, so the default-closed guard requires a
+    // token to reach the handler; the filter then delegates non-/api errors to
+    // Nest's default shape rather than the envelope.
     const url = await app.getUrl();
-    const res = await fetch(`${url}/other/boom`);
+    const res = await fetch(`${url}/other/boom`, {
+      headers: { authorization: `Bearer ${TOKEN}` },
+    });
     const body = await res.json();
 
     expect(res.status).toBe(404);

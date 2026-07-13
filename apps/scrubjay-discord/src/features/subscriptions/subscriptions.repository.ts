@@ -4,6 +4,15 @@ import { channelEBirdSubscriptions } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { AlertQueue } from "../dispatch/alert-queue.service";
 
+/** A subscription row as returned by the update/list projections. */
+export type SubscriptionRecord = {
+  active: boolean;
+  channelId: string;
+  countyCode: string;
+  lastUpdated: Date;
+  stateCode: string;
+};
+
 @Injectable()
 export class SubscriptionsRepository {
   constructor(
@@ -97,7 +106,7 @@ export class SubscriptionsRepository {
   async setSubscriptionActive(
     key: { channelId: string; stateCode: string; countyCode: string },
     active: boolean,
-  ) {
+  ): Promise<SubscriptionRecord | undefined> {
     const [row] = await this.drizzle.db
       .update(channelEBirdSubscriptions)
       .set({ active })
