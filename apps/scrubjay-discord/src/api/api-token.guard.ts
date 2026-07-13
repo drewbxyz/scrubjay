@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import {
   type CanActivate,
   type ExecutionContext,
@@ -11,12 +11,6 @@ import type { AppConfig } from "@/core/config/config.schema";
 
 @Injectable()
 export class ApiTokenGuard implements CanActivate {
-  // Ephemeral per-process key for the constant-time comparison below. Keyed
-  // HMAC (not a plain hash) makes explicit that this equalizes buffer length
-  // for timingSafeEqual — the token is a high-entropy shared secret compared
-  // in memory, never a password stored at rest.
-  private readonly compareKey = randomBytes(32);
-
   constructor(private readonly configService: ConfigService<AppConfig, true>) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -26,21 +20,26 @@ export class ApiTokenGuard implements CanActivate {
     if (!expected) throw new UnauthorizedException();
 
     const request = context.switchToHttp().getRequest<Request>();
-    const header = request.headers.authorization ?? "";
-    const presented = header.startsWith("Bearer ") ? header.slice(7) : "";
+    const token = this.extractTokenFromHeader(request);
+    if (!token) throw new UnauthorizedException();
 
-    // HMAC both sides with the ephemeral key so timingSafeEqual gets
-    // equal-length buffers and the comparison leaks nothing about token
-    // length or prefix.
-    const presentedMac = createHmac("sha256", this.compareKey)
-      .update(presented)
-      .digest();
-    const expectedMac = createHmac("sha256", this.compareKey)
-      .update(expected)
-      .digest();
-    if (!timingSafeEqual(presentedMac, expectedMac)) {
+    // Constant-time compare of the presented bearer token against the
+    // configured shared secret. Both are high-entropy secrets held in memory
+    // (never hashed at rest), so a direct timingSafeEqual is appropriate; the
+    // length guard only avoids timingSafeEqual's throw on unequal lengths.
+    const presented = Buffer.from(token);
+    const secret = Buffer.from(expected);
+    if (
+      presented.length !== secret.length ||
+      !timingSafeEqual(presented, secret)
+    ) {
       throw new UnauthorizedException();
     }
     return true;
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(" ") ?? [];
+    return type === "Bearer" ? token : undefined;
   }
 }
