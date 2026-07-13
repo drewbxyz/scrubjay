@@ -2,9 +2,11 @@ import {
   deliverySchema,
   observationSchema,
   pendingAlertSchema,
+  subscriptionSchema,
 } from "@scrubjay/api-contracts";
 import { describe, expect, it } from "vitest";
 import type { PendingEBirdAlert } from "@/features/dispatch/alert-queue.repository";
+import type { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.repository";
 import type { OpsRepository } from "./ops.repository";
 
 /**
@@ -29,6 +31,11 @@ type ObservationRow = Awaited<
 type DeliveryRow = Awaited<
   ReturnType<OpsRepository["listDeliveries"]>
 >["deliveries"][number];
+
+// The PATCH response surfaces the row `setSubscriptionActive` returns.
+type SubscriptionRow = NonNullable<
+  Awaited<ReturnType<SubscriptionsRepository["setSubscriptionActive"]>>
+>;
 
 /** Wire serialization the controllers actually perform: JSON, Dates → ISO. */
 function toWire<T>(row: T): unknown {
@@ -138,6 +145,27 @@ describe("contract drift: delivery", () => {
   it("has the same field set as the schema", () => {
     expect(Object.keys(deliverySchema.shape).sort()).toEqual(
       Object.keys(sent).sort(),
+    );
+  });
+});
+
+describe("contract drift: subscription", () => {
+  const subscription: SubscriptionRow = {
+    active: false,
+    channelId: "CH1",
+    countyCode: "*",
+    lastUpdated: new Date("2026-07-13T00:00:00.000Z"),
+    stateCode: "US-CA",
+  };
+
+  it("serializes through subscriptionSchema", () => {
+    const result = subscriptionSchema.safeParse(toWire(subscription));
+    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
+  });
+
+  it("has the same field set as the schema", () => {
+    expect(Object.keys(subscriptionSchema.shape).sort()).toEqual(
+      Object.keys(subscription).sort(),
     );
   });
 });

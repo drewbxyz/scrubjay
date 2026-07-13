@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Patch,
@@ -58,7 +60,9 @@ export class SubscriptionsController {
     return { subscriptions: await this.repo.listSubscriptions(query) };
   }
 
+  // Idempotent "ensure": 200 with an honest `created` flag, not a POST 201.
   @Post("channels/:channelId/subscriptions")
+  @HttpCode(HttpStatus.OK)
   async create(
     @Param("channelId") channelId: string,
     @Body(new ZodValidationPipe(createSubscriptionBodySchema))
@@ -91,19 +95,23 @@ export class SubscriptionsController {
     @Param("channelId") channelId: string,
     @Body(new ZodValidationPipe(updateSubscriptionBodySchema))
     body: UpdateSubscriptionBody,
-  ): Promise<{ updated: true }> {
+  ): Promise<{
+    subscription: NonNullable<
+      Awaited<ReturnType<SubscriptionsRepository["setSubscriptionActive"]>>
+    >;
+  }> {
     const { active, ...region } = body;
-    const existed = await this.repo.setSubscriptionActive(
+    const subscription = await this.repo.setSubscriptionActive(
       { channelId, ...region },
       active,
     );
-    if (!existed) {
+    if (!subscription) {
       throw new NotFoundException({
         code: "NOT_FOUND",
         message: "No subscription at that key",
       });
     }
-    return { updated: true };
+    return { subscription };
   }
 
   @Delete("channels/:channelId/subscriptions")

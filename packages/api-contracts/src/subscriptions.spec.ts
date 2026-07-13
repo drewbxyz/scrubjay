@@ -5,6 +5,7 @@ import {
   subscriptionRegionKeySchema,
   subscriptionSchema,
   updateSubscriptionBodySchema,
+  updateSubscriptionResponseSchema,
 } from "./subscriptions.js";
 
 describe("subscription contracts", () => {
@@ -51,5 +52,18 @@ describe("subscription contracts", () => {
         stateCode: "US-CA",
       }).success,
     ).toBe(false);
+  });
+
+  it("wraps a wire-format subscription in the update response", () => {
+    const parsed = updateSubscriptionResponseSchema.parse({
+      subscription: {
+        active: false,
+        channelId: "123",
+        countyCode: "US-CA-085",
+        lastUpdated: "2026-07-13T00:00:00.000Z",
+        stateCode: "US-CA",
+      },
+    });
+    expect(parsed.subscription.active).toBe(false);
   });
 });

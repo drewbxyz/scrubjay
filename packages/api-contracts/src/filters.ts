@@ -26,6 +26,15 @@ export const addFilterBodySchema = z.object({
 export type AddFilterBody = z.infer<typeof addFilterBodySchema>;
 
 /**
+ * Add is an idempotent "ensure": `added` is true only when a row was actually
+ * inserted, false when the filter already existed (the insert was a no-op).
+ */
+export const addFilterResponseSchema = z.object({
+  added: z.boolean(),
+});
+export type AddFilterResponse = z.infer<typeof addFilterResponseSchema>;
+
+/**
  * Delete targets an exact stored name, so it must NOT trim: the 👎 path can
  * store a name with edge whitespace, and trimming here would make it
  * undeletable via the API. Min-length still guards against empty input.

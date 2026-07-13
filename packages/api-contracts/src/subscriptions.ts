@@ -64,3 +64,11 @@ export const updateSubscriptionBodySchema = subscriptionRegionKeySchema.extend({
 export type UpdateSubscriptionBody = z.infer<
   typeof updateSubscriptionBodySchema
 >;
+
+/** PATCH returns the mutated row in the same wire shape as a list element. */
+export const updateSubscriptionResponseSchema = z.object({
+  subscription: subscriptionSchema,
+});
+export type UpdateSubscriptionResponse = z.infer<
+  typeof updateSubscriptionResponseSchema
+>;

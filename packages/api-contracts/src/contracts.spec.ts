@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { pendingAlertSchema } from "./alerts.js";
 import { listDeliveriesQuerySchema } from "./deliveries.js";
 import { stateCodeSchema } from "./ebird.js";
-import { addFilterBodySchema, deleteFilterQuerySchema } from "./filters.js";
+import {
+  addFilterBodySchema,
+  addFilterResponseSchema,
+  deleteFilterQuerySchema,
+} from "./filters.js";
 import { guildsResponseSchema } from "./guilds.js";
 import { listObservationsQuerySchema } from "./observations.js";
 import { regionsResponseSchema } from "./regions.js";
@@ -15,6 +19,13 @@ describe("api contracts", () => {
     expect(addFilterBodySchema.safeParse({ commonName: "  " }).success).toBe(
       false,
     );
+  });
+
+  it("carries an honest added flag on the add-filter response", () => {
+    expect(addFilterResponseSchema.parse({ added: false })).toEqual({
+      added: false,
+    });
+    expect(addFilterResponseSchema.safeParse({}).success).toBe(false);
   });
 
   it("preserves edge whitespace on the delete query so stored names stay deletable", () => {

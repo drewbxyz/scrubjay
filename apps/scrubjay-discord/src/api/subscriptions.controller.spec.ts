@@ -1,5 +1,8 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { listSubscriptionsResponseSchema } from "@scrubjay/api-contracts";
+import {
+  listSubscriptionsResponseSchema,
+  updateSubscriptionResponseSchema,
+} from "@scrubjay/api-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { InvalidRegionError } from "@/features/subscriptions/invalid-region.error";
 import type { SubscriptionsRepository } from "@/features/subscriptions/subscriptions.repository";
@@ -73,7 +76,7 @@ describe("SubscriptionsController", () => {
   });
 
   it("404s a PATCH against a missing composite key", async () => {
-    const setSubscriptionActive = vi.fn().mockResolvedValue(false);
+    const setSubscriptionActive = vi.fn().mockResolvedValue(undefined);
     const controller = build({ repo: { setSubscriptionActive } });
     await expect(
       controller.update("CH1", {
@@ -86,6 +89,23 @@ describe("SubscriptionsController", () => {
       { channelId: "CH1", countyCode: "*", stateCode: "US-CA" },
       false,
     );
+  });
+
+  it("returns the updated subscription row on a PATCH", async () => {
+    const setSubscriptionActive = vi
+      .fn()
+      .mockResolvedValue({ ...row, active: false });
+    const controller = build({ repo: { setSubscriptionActive } });
+    const result = await controller.update("CH1", {
+      active: false,
+      countyCode: "*",
+      stateCode: "US-CA",
+    });
+    const parsed = updateSubscriptionResponseSchema.parse(
+      JSON.parse(JSON.stringify(result)),
+    );
+    expect(parsed.subscription.active).toBe(false);
+    expect(parsed.subscription.channelId).toBe("CH1");
   });
 
   it("deletes via SubscriptionsService.unsubscribe using the county code as region", async () => {

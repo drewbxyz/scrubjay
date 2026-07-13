@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Post,
@@ -12,6 +14,7 @@ import {
 } from "@nestjs/common";
 import {
   type AddFilterBody,
+  type AddFilterResponse,
   addFilterBodySchema,
   type DeleteFilterQuery,
   deleteFilterQuerySchema,
@@ -35,13 +38,17 @@ export class FiltersController {
     return { filters: await this.repo.channelFilters(channelId) };
   }
 
+  // Idempotent "ensure": 200 with an honest `added` flag, not a POST 201.
+  // `onConflictDoNothing().returning()` yields [] when the filter already
+  // existed, so an empty result means nothing was inserted.
   @Post()
+  @HttpCode(HttpStatus.OK)
   async add(
     @Param("channelId") channelId: string,
     @Body(new ZodValidationPipe(addFilterBodySchema)) body: AddFilterBody,
-  ): Promise<{ added: true }> {
-    await this.repo.addChannelFilter(channelId, body.commonName);
-    return { added: true };
+  ): Promise<AddFilterResponse> {
+    const rows = await this.repo.addChannelFilter(channelId, body.commonName);
+    return { added: rows.length > 0 };
   }
 
   @Delete()

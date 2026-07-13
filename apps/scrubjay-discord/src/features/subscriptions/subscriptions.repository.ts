@@ -93,12 +93,12 @@ export class SubscriptionsRepository {
       );
   }
 
-  /** Returns whether a Subscription existed at that composite key. */
+  /** Returns the updated Subscription row, or undefined if none existed. */
   async setSubscriptionActive(
     key: { channelId: string; stateCode: string; countyCode: string },
     active: boolean,
-  ): Promise<boolean> {
-    const rows = await this.drizzle.db
+  ) {
+    const [row] = await this.drizzle.db
       .update(channelEBirdSubscriptions)
       .set({ active })
       .where(
@@ -108,7 +108,13 @@ export class SubscriptionsRepository {
           eq(channelEBirdSubscriptions.countyCode, key.countyCode),
         ),
       )
-      .returning({ channelId: channelEBirdSubscriptions.channelId });
-    return rows.length > 0;
+      .returning({
+        active: channelEBirdSubscriptions.active,
+        channelId: channelEBirdSubscriptions.channelId,
+        countyCode: channelEBirdSubscriptions.countyCode,
+        lastUpdated: channelEBirdSubscriptions.lastUpdated,
+        stateCode: channelEBirdSubscriptions.stateCode,
+      });
+    return row;
   }
 }

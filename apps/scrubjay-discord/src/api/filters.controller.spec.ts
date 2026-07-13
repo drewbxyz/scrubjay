@@ -16,12 +16,27 @@ describe("FiltersController", () => {
     expect(repo.channelFilters).toHaveBeenCalledWith("CH1");
   });
 
-  it("adds a filter", async () => {
+  it("reports added=true when a row was inserted", async () => {
+    const repo = {
+      addChannelFilter: vi
+        .fn()
+        .mockResolvedValue([{ channelId: "CH1", commonName: "Verdin" }]),
+    } as unknown as FiltersRepository;
+    const result = await new FiltersController(repo).add("CH1", {
+      commonName: "Verdin",
+    });
+    expect(result).toEqual({ added: true });
+    expect(repo.addChannelFilter).toHaveBeenCalledWith("CH1", "Verdin");
+  });
+
+  it("reports added=false when the filter already existed", async () => {
     const repo = {
       addChannelFilter: vi.fn().mockResolvedValue([]),
     } as unknown as FiltersRepository;
-    await new FiltersController(repo).add("CH1", { commonName: "Verdin" });
-    expect(repo.addChannelFilter).toHaveBeenCalledWith("CH1", "Verdin");
+    const result = await new FiltersController(repo).add("CH1", {
+      commonName: "Verdin",
+    });
+    expect(result).toEqual({ added: false });
   });
 
   it("removes a filter using the exact stored name, edge whitespace intact", async () => {

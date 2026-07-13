@@ -114,21 +114,23 @@ describe("SubscriptionsRepository", () => {
   });
 
   describe("setSubscriptionActive", () => {
-    it("toggles active and reports whether the row existed", async () => {
+    it("toggles active and returns the updated row, undefined when absent", async () => {
       const sub = await seedSubscription(db, { active: true });
       const key = {
         channelId: sub.channelId,
         countyCode: sub.countyCode,
         stateCode: sub.stateCode,
       };
-      expect(await repo.setSubscriptionActive(key, false)).toBe(true);
+      const updated = await repo.setSubscriptionActive(key, false);
+      expect(updated?.active).toBe(false);
+      expect(updated?.channelId).toBe(sub.channelId);
       const [row] = await repo.listSubscriptions({
         channelId: sub.channelId,
       });
       expect(row?.active).toBe(false);
       expect(
         await repo.setSubscriptionActive({ ...key, channelId: "NOPE" }, true),
-      ).toBe(false);
+      ).toBeUndefined();
     });
   });
 });
