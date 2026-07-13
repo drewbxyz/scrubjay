@@ -63,4 +63,46 @@ export class SubscriptionsRepository {
         channelEBirdSubscriptions.countyCode,
       );
   }
+
+  async listSubscriptions(
+    filter: { channelId?: string; stateCode?: string } = {},
+  ) {
+    const conditions = [
+      filter.channelId
+        ? eq(channelEBirdSubscriptions.channelId, filter.channelId)
+        : undefined,
+      filter.stateCode
+        ? eq(channelEBirdSubscriptions.stateCode, filter.stateCode)
+        : undefined,
+    ].filter((c) => c !== undefined);
+
+    return this.drizzle.db
+      .select()
+      .from(channelEBirdSubscriptions)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(
+        channelEBirdSubscriptions.channelId,
+        channelEBirdSubscriptions.stateCode,
+        channelEBirdSubscriptions.countyCode,
+      );
+  }
+
+  /** Returns whether a Subscription existed at that composite key. */
+  async setSubscriptionActive(
+    key: { channelId: string; stateCode: string; countyCode: string },
+    active: boolean,
+  ): Promise<boolean> {
+    const rows = await this.drizzle.db
+      .update(channelEBirdSubscriptions)
+      .set({ active })
+      .where(
+        and(
+          eq(channelEBirdSubscriptions.channelId, key.channelId),
+          eq(channelEBirdSubscriptions.stateCode, key.stateCode),
+          eq(channelEBirdSubscriptions.countyCode, key.countyCode),
+        ),
+      )
+      .returning({ channelId: channelEBirdSubscriptions.channelId });
+    return rows.length > 0;
+  }
 }
