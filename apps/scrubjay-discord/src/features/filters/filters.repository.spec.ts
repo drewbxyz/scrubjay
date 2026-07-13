@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { DrizzleService } from "@/core/drizzle/drizzle.service";
 import {
   createTestDb,
+  seedFilter,
   seedSubscription,
   truncateAll,
 } from "@/testing/db-helpers";
@@ -37,6 +38,23 @@ describe("FiltersRepository", () => {
       await expect(repository.isChannelFilterable("UNKNOWN")).resolves.toBe(
         false,
       );
+    });
+  });
+
+  describe("channelFilters / removeChannelFilter", () => {
+    it("lists a channel's filters ordered by common name", async () => {
+      await seedFilter(db, { channelId: "CH1", commonName: "Verdin" });
+      await seedFilter(db, { channelId: "CH1", commonName: "Anhinga" });
+      await seedFilter(db, { channelId: "CH2", commonName: "Sora" });
+      const filters = await repository.channelFilters("CH1");
+      expect(filters.map((f) => f.commonName)).toEqual(["Anhinga", "Verdin"]);
+    });
+
+    it("removes a filter and reports whether it existed", async () => {
+      await seedFilter(db, { channelId: "CH1", commonName: "Verdin" });
+      expect(await repository.removeChannelFilter("CH1", "Verdin")).toBe(true);
+      expect(await repository.removeChannelFilter("CH1", "Verdin")).toBe(false);
+      expect(await repository.channelFilters("CH1")).toHaveLength(0);
     });
   });
 });
