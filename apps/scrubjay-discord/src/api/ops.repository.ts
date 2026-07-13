@@ -3,7 +3,7 @@ import type {
   ListDeliveriesQuery,
   ListObservationsQuery,
 } from "@scrubjay/api-contracts";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import {
   deliveries,
   locations,
@@ -88,7 +88,8 @@ export class OpsRepository {
       })
       .from(deliveries)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(deliveries.sentAt), desc(deliveries.id))
+      // Explicit NULLS FIRST (matches Postgres' DESC default) so unsent/failed rows surface first.
+      .orderBy(sql`${deliveries.sentAt} DESC NULLS FIRST`, desc(deliveries.id))
       .limit(query.limit + 1)
       .offset(query.offset);
 
