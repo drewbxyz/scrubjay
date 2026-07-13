@@ -44,4 +44,7 @@ async function bootstrap() {
 
   await app.listen(config.get("PORT", { infer: true }));
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -24,6 +24,16 @@ export class ApiExceptionFilter extends BaseExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<Request>();
+    const response = http.getResponse<Response>();
+
+    // Insurance against a double-send if streaming ever appears: once
+    // headers are sent, only Nest's default handling may still act on the
+    // response. Deliberately before any other branching so it holds
+    // regardless of path.
+    if (response.headersSent) {
+      super.catch(exception, host);
+      return;
+    }
 
     // Only /api/* responses use the contracts' envelope; everything else
     // (notably /health) keeps Nest's default error shape.
@@ -32,8 +42,6 @@ export class ApiExceptionFilter extends BaseExceptionFilter {
       super.catch(exception, host);
       return;
     }
-
-    const response = http.getResponse<Response>();
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
@@ -75,7 +83,10 @@ export class ApiExceptionFilter extends BaseExceptionFilter {
       return;
     }
 
-    this.logger.error(exception);
+    this.logger.error(
+      `${request.method} ${path}`,
+      exception instanceof Error ? exception.stack : String(exception),
+    );
     response.status(500).json({
       error: {
         code: "INTERNAL",
