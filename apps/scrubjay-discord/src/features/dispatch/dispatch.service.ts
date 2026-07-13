@@ -68,8 +68,6 @@ export class DispatchService {
           const refs = plan.alerts.map(toAlertRef);
           try {
             await this.sender.send(plan.channelId, plan.message);
-            // Record immediately: a crash now loses at most this one plan's
-            // records instead of the whole tick's (at-least-once, spec §2).
             await this.alertQueue.record(refs, "sent");
             this.alerts.add(refs.length, { status: "sent" });
             sentCount += refs.length;
