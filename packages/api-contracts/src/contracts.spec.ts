@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { pendingAlertSchema } from "./alerts.js";
 import { listDeliveriesQuerySchema } from "./deliveries.js";
 import { stateCodeSchema } from "./ebird.js";
-import { addFilterBodySchema } from "./filters.js";
+import { addFilterBodySchema, deleteFilterQuerySchema } from "./filters.js";
 import { guildsResponseSchema } from "./guilds.js";
 import { listObservationsQuerySchema } from "./observations.js";
 import { regionsResponseSchema } from "./regions.js";
@@ -13,6 +13,15 @@ describe("api contracts", () => {
       commonName: "Verdin",
     });
     expect(addFilterBodySchema.safeParse({ commonName: "  " }).success).toBe(
+      false,
+    );
+  });
+
+  it("preserves edge whitespace on the delete query so stored names stay deletable", () => {
+    expect(deleteFilterQuerySchema.parse({ commonName: " Verdin " })).toEqual({
+      commonName: " Verdin ",
+    });
+    expect(deleteFilterQuerySchema.safeParse({ commonName: "" }).success).toBe(
       false,
     );
   });
@@ -64,6 +73,10 @@ describe("api contracts", () => {
   it("accepts state codes like US-CA and rejects bare countries", () => {
     expect(stateCodeSchema.safeParse("US-CA").success).toBe(true);
     expect(stateCodeSchema.safeParse("US").success).toBe(false);
+  });
+
+  it("rejects a state code with an over-long suffix", () => {
+    expect(stateCodeSchema.safeParse("US-ABCDEFGHIJK").success).toBe(false);
   });
 
   it("groups subscriptions under regions", () => {

@@ -1,0 +1,86 @@
+import {
+  Body,
+  Controller,
+  Get,
+  type INestApplication,
+  Logger,
+  NotFoundException,
+  Post,
+} from "@nestjs/common";
+import { APP_FILTER } from "@nestjs/core";
+import { Test } from "@nestjs/testing";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiExceptionFilter } from "./api-exception.filter";
+
+// A stand-in for the real API controllers: routes under /api/v1/* (enveloped
+// by the global filter) plus one route outside /api/ (default Nest handling).
+@Controller()
+class ProbeController {
+  @Post("api/v1/echo")
+  echo(@Body() body: unknown): { body: unknown } {
+    return { body };
+  }
+
+  @Get("other/boom")
+  otherBoom(): never {
+    throw new NotFoundException("plain");
+  }
+}
+
+describe("ApiExceptionFilter (e2e)", () => {
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    // The filter logs unknown errors; keep test output quiet.
+    vi.spyOn(Logger.prototype, "error").mockImplementation(() => {});
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ProbeController],
+      providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
+    }).compile();
+    app = moduleRef.createNestApplication({ logger: false });
+    await app.init();
+    await app.listen(0);
+  });
+
+  afterEach(async () => {
+    await app.close();
+    vi.restoreAllMocks();
+  });
+
+  it("envelopes malformed JSON bodies as a 400 (body-parser bypass)", async () => {
+    const url = await app.getUrl();
+    const res = await fetch(`${url}/api/v1/echo`, {
+      body: "{ not valid json ",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe("BAD_REQUEST");
+    expect(typeof body.error.message).toBe("string");
+    expect(body.statusCode).toBeUndefined();
+  });
+
+  it("envelopes 404s for unknown /api/v1 paths", async () => {
+    const url = await app.getUrl();
+    const res = await fetch(`${url}/api/v1/does-not-exist`);
+    const body = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(body.error.code).toBe("NOT_FOUND");
+    expect(body.statusCode).toBeUndefined();
+  });
+
+  it("leaves non-/api errors in Nest's default shape", async () => {
+    const url = await app.getUrl();
+    const res = await fetch(`${url}/other/boom`);
+    const body = await res.json();
+
+    expect(res.status).toBe(404);
+    // Default Nest envelope, not the API one.
+    expect(body.statusCode).toBe(404);
+    expect(body.error).toBe("Not Found");
+    expect(body.message).toBe("plain");
+  });
+});

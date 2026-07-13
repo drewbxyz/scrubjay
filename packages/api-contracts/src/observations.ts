@@ -25,6 +25,11 @@ export type Observation = z.infer<typeof observationSchema>;
 
 export const listObservationsQuerySchema = paginationQuerySchema.extend({
   countyCode: z.string().min(1).optional(),
+  /**
+   * Filters by ingest time (`observations.createdAt`), not observation date
+   * (`obsDt`). This is the ops-debugging axis (indexed) — use it to page
+   * through recently ingested rows, not to window by when a bird was seen.
+   */
   since: z.iso.datetime().optional(),
   speciesCode: z.string().min(1).optional(),
   stateCode: z.string().min(1).optional(),

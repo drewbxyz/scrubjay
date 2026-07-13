@@ -47,4 +47,35 @@ describe("EBirdRegionsService", () => {
       new EBirdRegionsService(config).countiesForState("US-CA"),
     ).rejects.toThrow(BadGatewayException);
   });
+
+  it("evicts an expired entry when a later read finds it stale", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify([{ code: "US-CA-085", name: "Santa Clara" }]),
+          ),
+        );
+      const service = new EBirdRegionsService(config);
+      const { cache } = service as unknown as {
+        cache: Map<string, unknown>;
+      };
+
+      await service.countiesForState("US-CA");
+      expect(cache.has("US-CA")).toBe(true);
+
+      // Age past the 24h TTL, then fail the refetch so nothing repopulates.
+      vi.advanceTimersByTime(24 * 60 * 60 * 1000 + 1);
+      fetchMock.mockRejectedValueOnce(new Error("boom"));
+      await expect(service.countiesForState("US-CA")).rejects.toThrow(
+        BadGatewayException,
+      );
+
+      expect(cache.has("US-CA")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

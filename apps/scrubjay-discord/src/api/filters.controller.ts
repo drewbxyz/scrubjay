@@ -13,6 +13,8 @@ import {
 import {
   type AddFilterBody,
   addFilterBodySchema,
+  type DeleteFilterQuery,
+  deleteFilterQuerySchema,
   type ListFiltersResponse,
 } from "@scrubjay/api-contracts";
 import { FiltersRepository } from "@/features/filters/filters.repository";
@@ -45,7 +47,8 @@ export class FiltersController {
   @Delete()
   async remove(
     @Param("channelId") channelId: string,
-    @Query(new ZodValidationPipe(addFilterBodySchema)) query: AddFilterBody,
+    @Query(new ZodValidationPipe(deleteFilterQuerySchema))
+    query: DeleteFilterQuery,
   ): Promise<{ deleted: true }> {
     const existed = await this.repo.removeChannelFilter(
       channelId,

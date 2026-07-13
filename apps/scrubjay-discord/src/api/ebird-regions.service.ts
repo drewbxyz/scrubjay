@@ -20,8 +20,12 @@ export class EBirdRegionsService {
 
   async countiesForState(stateCode: string): Promise<CountiesResponse> {
     const cached = this.cache.get(stateCode);
-    if (cached && cached.expiresAt > Date.now()) {
-      return { counties: cached.counties };
+    if (cached) {
+      if (cached.expiresAt > Date.now()) {
+        return { counties: cached.counties };
+      }
+      // Drop the stale entry so expired states don't linger in the map.
+      this.cache.delete(stateCode);
     }
 
     const url = new URL(

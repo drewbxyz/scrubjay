@@ -24,6 +24,14 @@ describe("FiltersController", () => {
     expect(repo.addChannelFilter).toHaveBeenCalledWith("CH1", "Verdin");
   });
 
+  it("removes a filter using the exact stored name, edge whitespace intact", async () => {
+    const repo = {
+      removeChannelFilter: vi.fn().mockResolvedValue(true),
+    } as unknown as FiltersRepository;
+    await new FiltersController(repo).remove("CH1", { commonName: " Verdin " });
+    expect(repo.removeChannelFilter).toHaveBeenCalledWith("CH1", " Verdin ");
+  });
+
   it("404s removing a filter that does not exist", async () => {
     const repo = {
       removeChannelFilter: vi.fn().mockResolvedValue(false),

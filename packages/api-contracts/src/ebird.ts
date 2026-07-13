@@ -3,7 +3,7 @@ import { z } from "zod";
 /** eBird subnational1 code: country-state, e.g. US-CA. */
 export const stateCodeSchema = z
   .string()
-  .regex(/^[A-Z]{2}-[A-Z0-9]+$/, "expected a code like US-CA");
+  .regex(/^[A-Z]{2}-[A-Z0-9]{1,10}$/, "expected a code like US-CA");
 
 export const countySchema = z.object({
   code: z.string().min(1),
