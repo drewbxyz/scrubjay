@@ -78,6 +78,9 @@ importers:
       '@opentelemetry/sdk-node':
         specifier: ^0.220.0
         version: 0.220.0(@opentelemetry/api@1.9.1)
+      '@scrubjay/api-contracts':
+        specifier: workspace:*
+        version: link:../../packages/api-contracts
       discord.js:
         specifier: ^14.26.4
         version: 14.26.4

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { NecordModule } from "necord";
 import { LoggerModule } from "nestjs-pino";
+import { ApiModule } from "@/api/api.module";
 import { type AppConfig, validateConfig } from "@/core/config/config.schema";
 import { FiltersModule } from "@/features/filters/filters.module";
 import { HealthModule } from "@/features/health/health.module";
@@ -40,6 +41,7 @@ import { createNecordOptions } from "./discord/necord.config";
     HealthModule,
     SubscriptionsModule,
     JobsModule,
+    ...(process.env.SCRUBJAY_API_TOKEN ? [ApiModule] : []),
   ],
   providers: [],
 })
