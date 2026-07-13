@@ -50,9 +50,7 @@ export class DispatchService {
       this.logger.debug(`No new alerts since ${since.toISOString()}`);
     }
 
-    // Channels are independent Discord rate-limit buckets, so they dispatch
-    // concurrently; within a channel, plans stay sequential to preserve
-    // message order and the per-channel rate limit.
+    // Channels are independent rate-limit buckets: concurrent across, sequential within.
     const plansByChannel = new Map<string, DispatchPlan[]>();
     for (const plan of planEBirdAlerts(pending)) {
       const channelPlans = plansByChannel.get(plan.channelId);
