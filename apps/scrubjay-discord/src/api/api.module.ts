@@ -3,6 +3,8 @@ import { DispatchModule } from "@/features/dispatch/dispatch.module";
 import { FiltersModule } from "@/features/filters/filters.module";
 import { SubscriptionsModule } from "@/features/subscriptions/subscriptions.module";
 import { FiltersController } from "./filters.controller";
+import { GuildsController } from "./guilds.controller";
+import { GuildsService } from "./guilds.service";
 import { SubscriptionsController } from "./subscriptions.controller";
 
 /**
@@ -10,8 +12,8 @@ import { SubscriptionsController } from "./subscriptions.controller";
  * set — a bot without a portal runs with no HTTP surface beyond /health.
  */
 @Module({
-  controllers: [FiltersController, SubscriptionsController],
+  controllers: [FiltersController, GuildsController, SubscriptionsController],
   imports: [DispatchModule, FiltersModule, SubscriptionsModule],
-  providers: [],
+  providers: [GuildsService],
 })
 export class ApiModule {}
