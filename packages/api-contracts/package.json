@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@scrubjay/typescript-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "main": "dist/index.js",
+  "name": "@scrubjay/api-contracts",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check-types": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "0.1.0"
+}
