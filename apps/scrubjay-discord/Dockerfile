@@ -40,6 +40,11 @@ COPY --from=installer --chown=nodejs:nodejs /usr/src/app/node_modules ./node_mod
 
 # Copy the entire app directory (includes dist, node_modules, and source files like drizzle migrations)
 COPY --from=installer --chown=nodejs:nodejs /usr/src/app/apps/scrubjay-discord ./apps/scrubjay-discord
+
+# Workspace packages: the app's node_modules links @scrubjay/* as relative
+# symlinks into ../../packages, so they must exist in the image or the
+# require() dangles and the bot dies at boot with MODULE_NOT_FOUND.
+COPY --from=installer --chown=nodejs:nodejs /usr/src/app/packages ./packages
  
 USER nodejs
 WORKDIR /usr/src/app/apps/scrubjay-discord
