@@ -49,7 +49,9 @@ if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
 
   sdk.start();
 
-  process.once("SIGTERM", () => {
+  const shutdown = () => {
     void sdk.shutdown().finally(() => process.exit(0));
-  });
+  };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
 }
