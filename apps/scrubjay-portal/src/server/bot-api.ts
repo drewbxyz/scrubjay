@@ -41,6 +41,7 @@ function record(
 ): void {
   // Attribute names deliberately avoid the Prometheus-reserved `job`/`instance`
   // and carry no Discord IDs (logical endpoint names only — cardinality).
+  // `status` is the HTTP status as a string, or the sentinel `"network_error"`.
   const attributes = { endpoint, method, status };
   requests.add(1, attributes);
   duration.record(performance.now() - startedAt, attributes);
@@ -106,7 +107,7 @@ export async function botApi<T>(
     );
   }
 
-  const body = schema.safeParse(await response.json());
+  const body = schema.safeParse(await response.json().catch(() => undefined));
   if (!body.success) {
     throw new BotApiError(
       502,

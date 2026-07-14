@@ -99,6 +99,18 @@ describe("botApi", () => {
     ).rejects.toMatchObject({ code: "CONTRACT_MISMATCH", status: 502 });
   });
 
+  it("maps a malformed 2xx body to CONTRACT_MISMATCH", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("not json", { status: 200 }),
+    );
+    const err = await botApi(okSchema, {
+      endpoint: "x",
+      path: "/api/v1/x",
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BotApiError);
+    expect(err).toMatchObject({ code: "CONTRACT_MISMATCH", status: 502 });
+  });
+
   it("maps network failures to BOT_UNREACHABLE", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(
       new TypeError("fetch failed"),
