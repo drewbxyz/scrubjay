@@ -3,51 +3,48 @@ FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 # pnpm 11 installs global bins to $PNPM_HOME/bin (older pnpm used $PNPM_HOME)
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
+# turbo is pinned: release builds run with no layer cache, so an unpinned
+# "latest" would silently change prune/build behavior with no lockfile to
+# stop it. Keep in sync with the root devDependency.
 RUN apk add --no-cache libc6-compat && \
     corepack enable && \
-    pnpm install turbo --global
+    pnpm install turbo@2.10.3 --global
 
 FROM base AS builder
 WORKDIR /usr/src/app
-COPY package.json pnpm-lock.yaml* ./
 COPY . .
 RUN turbo prune scrubjay-discord --docker
 
 FROM base AS installer
 WORKDIR /usr/src/app
 COPY .gitignore .gitignore
+# Dependency layers first: out/json holds only package.json files, so the
+# pnpm install layer is reused across source-only changes; out/full (the
+# source) must land after the install or every commit re-installs.
 COPY --from=builder /usr/src/app/out/json/ .
 COPY --from=builder /usr/src/app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /usr/src/app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder /usr/src/app/out/full/ .
-
 RUN pnpm install --frozen-lockfile
+COPY --from=builder /usr/src/app/out/full/ .
 COPY turbo.json turbo.json
 RUN turbo run build --filter=scrubjay-discord
+# Self-contained prod tree: drops devDependencies and materializes workspace
+# deps (@scrubjay/*) as real directories instead of symlinks into packages/,
+# so the runner needs no workspace layout. The copied file set is the npm
+# packlist — dist and src/drizzle (migrations, read from cwd at boot) must
+# stay listed in the app's package.json "files".
+RUN pnpm --filter=scrubjay-discord deploy --prod --legacy /prod/scrubjay-discord
 
 FROM node:24-alpine AS runner
 
 WORKDIR /usr/src/app
- 
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
- 
-# Copy root workspace files and node_modules (contains hoisted dependencies)
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/package.json ./package.json
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/node_modules ./node_modules
 
-# Copy the entire app directory (includes dist, node_modules, and source files like drizzle migrations)
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/apps/scrubjay-discord ./apps/scrubjay-discord
+COPY --from=installer --chown=nodejs:nodejs /prod/scrubjay-discord ./
 
-# Workspace packages: the app's node_modules links @scrubjay/* as relative
-# symlinks into ../../packages, so they must exist in the image or the
-# require() dangles and the bot dies at boot with MODULE_NOT_FOUND.
-COPY --from=installer --chown=nodejs:nodejs /usr/src/app/packages ./packages
- 
 USER nodejs
-WORKDIR /usr/src/app/apps/scrubjay-discord
 
 # Single quotes are load-bearing: backticks or ${...} in double quotes would
 # be expanded by /bin/sh before node runs. start-period covers migrations +

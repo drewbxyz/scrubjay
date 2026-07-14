@@ -7,6 +7,9 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
+  "files": [
+    "dist"
+  ],
   "main": "dist/index.js",
   "name": "@scrubjay/api-contracts",
   "private": true,

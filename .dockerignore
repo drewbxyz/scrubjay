@@ -1,0 +1,11 @@
+# Keep the build context to source + lockfiles. The builder stage COPYs the
+# whole context; without this, local builds ship host node_modules (~800MB),
+# .git, and — worst — real .env secrets into builder-stage layers.
+.git
+**/node_modules
+**/.env*
+**/dist
+**/.turbo
+**/coverage
+docs
+.github

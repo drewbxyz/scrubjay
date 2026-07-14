@@ -52,6 +52,10 @@
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.10"
   },
+  "files": [
+    "dist",
+    "src/drizzle"
+  ],
   "name": "scrubjay-discord",
   "private": true,
   "scripts": {
