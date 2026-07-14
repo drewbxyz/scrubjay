@@ -8,6 +8,7 @@ export const configSchema = z.object({
   EBIRD_TOKEN: z.string().min(1),
   FILTER_REACTION_THRESHOLD: z.coerce.number().int().min(1).default(3),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  SCRUBJAY_API_TOKEN: z.string().min(32).optional(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

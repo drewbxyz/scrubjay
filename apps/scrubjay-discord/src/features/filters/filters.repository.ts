@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   channelEBirdSubscriptions,
   filteredSpecies,
@@ -27,5 +27,33 @@ export class FiltersRepository {
       })
       .onConflictDoNothing()
       .returning();
+  }
+
+  async channelFilters(channelId: string) {
+    return this.drizzle.db
+      .select({
+        channelId: filteredSpecies.channelId,
+        commonName: filteredSpecies.commonName,
+      })
+      .from(filteredSpecies)
+      .where(eq(filteredSpecies.channelId, channelId))
+      .orderBy(filteredSpecies.commonName);
+  }
+
+  /** Returns whether a filter row existed to remove. */
+  async removeChannelFilter(
+    channelId: string,
+    commonName: string,
+  ): Promise<boolean> {
+    const rows = await this.drizzle.db
+      .delete(filteredSpecies)
+      .where(
+        and(
+          eq(filteredSpecies.channelId, channelId),
+          eq(filteredSpecies.commonName, commonName),
+        ),
+      )
+      .returning({ channelId: filteredSpecies.channelId });
+    return rows.length > 0;
   }
 }

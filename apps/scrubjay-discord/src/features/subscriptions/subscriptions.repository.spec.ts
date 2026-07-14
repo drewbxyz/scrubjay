@@ -1,38 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DrizzleService } from "@/core/drizzle/drizzle.service";
+import type { Pool } from "pg";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import type { DrizzleService } from "@/core/drizzle/drizzle.service";
+import {
+  createTestDb,
+  seedSubscription,
+  truncateAll,
+} from "@/testing/db-helpers";
 import type { AlertQueue } from "../dispatch/alert-queue.service";
 import { SubscriptionsRepository } from "./subscriptions.repository";
 
 describe("SubscriptionsRepository", () => {
-  let repository: SubscriptionsRepository;
+  let db: DrizzleService;
+  let pool: Pool;
+  let repo: SubscriptionsRepository;
 
   const backfillEBird = vi.fn();
-
-  // insert chain: tx.insert().values().onConflictDoNothing().returning()
-  const insertReturning = vi.fn();
-  const insertOnConflict = vi.fn(() => ({ returning: insertReturning }));
-  const insertValues = vi.fn(() => ({
-    onConflictDoNothing: insertOnConflict,
-  }));
-  const tx = { insert: vi.fn(() => ({ values: insertValues })) };
-
-  // delete chain: db.delete().where().returning()
-  const deleteReturning = vi.fn();
-  const deleteWhere = vi.fn(() => ({ returning: deleteReturning }));
-
-  // select chain: db.select().from().where().orderBy()
-  const selectOrderBy = vi.fn();
-  const selectWhere = vi.fn(() => ({ orderBy: selectOrderBy }));
-  const selectFrom = vi.fn(() => ({ where: selectWhere }));
-
-  const drizzleMock = {
-    db: {
-      delete: vi.fn(() => ({ where: deleteWhere })),
-      select: vi.fn(() => ({ from: selectFrom })),
-      transaction: vi.fn(async (cb) => cb(tx)),
-    },
-  } as unknown as DrizzleService;
-
   const alertQueueMock = { backfillEBird } as unknown as AlertQueue;
 
   const subscription = {
@@ -41,26 +31,39 @@ describe("SubscriptionsRepository", () => {
     stateCode: "US-WA",
   };
 
-  beforeEach(() => {
+  beforeAll(async () => {
+    ({ db, pool } = await createTestDb());
+    repo = new SubscriptionsRepository(db, alertQueueMock);
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    repository = new SubscriptionsRepository(drizzleMock, alertQueueMock);
+    await truncateAll(db);
   });
 
   describe("insertSubscription", () => {
     it("inserts the row, backfills, and reports true when newly subscribed", async () => {
-      insertReturning.mockResolvedValue([{ channelId: "channel-123" }]);
-
-      const result = await repository.insertSubscription(subscription);
+      const result = await repo.insertSubscription(subscription);
 
       expect(result).toBe(true);
-      expect(insertValues).toHaveBeenCalledWith(subscription);
-      expect(backfillEBird).toHaveBeenCalledWith(subscription, tx);
+      expect(backfillEBird).toHaveBeenCalledWith(
+        subscription,
+        expect.anything(),
+      );
+
+      const rows = await repo.subscriptionsForChannel(subscription.channelId);
+      expect(rows).toHaveLength(1);
     });
 
     it("skips the backfill and reports false when already subscribed", async () => {
-      insertReturning.mockResolvedValue([]);
+      await repo.insertSubscription(subscription);
+      backfillEBird.mockClear();
 
-      const result = await repository.insertSubscription(subscription);
+      const result = await repo.insertSubscription(subscription);
 
       expect(result).toBe(false);
       expect(backfillEBird).not.toHaveBeenCalled();
@@ -69,28 +72,65 @@ describe("SubscriptionsRepository", () => {
 
   describe("deleteSubscription", () => {
     it("reports true when a row was removed", async () => {
-      deleteReturning.mockResolvedValue([{ channelId: "channel-123" }]);
+      await seedSubscription(db, subscription);
 
-      expect(await repository.deleteSubscription(subscription)).toBe(true);
+      expect(await repo.deleteSubscription(subscription)).toBe(true);
     });
 
     it("reports false when nothing matched", async () => {
-      deleteReturning.mockResolvedValue([]);
-
-      expect(await repository.deleteSubscription(subscription)).toBe(false);
+      expect(await repo.deleteSubscription(subscription)).toBe(false);
     });
   });
 
   describe("subscriptionsForChannel", () => {
     it("returns the channel's rows in state/county order", async () => {
-      const rows = [subscription];
-      selectOrderBy.mockResolvedValue(rows);
+      await seedSubscription(db, subscription);
 
-      const result = await repository.subscriptionsForChannel("channel-123");
+      const result = await repo.subscriptionsForChannel(subscription.channelId);
 
-      expect(result).toBe(rows);
-      expect(selectFrom).toHaveBeenCalled();
-      expect(selectOrderBy).toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0]?.channelId).toBe(subscription.channelId);
+    });
+  });
+
+  describe("listSubscriptions", () => {
+    it("returns all subscriptions when no filter is given", async () => {
+      await seedSubscription(db, { channelId: "CH1" });
+      await seedSubscription(db, { channelId: "CH2", stateCode: "US-AZ" });
+      const all = await repo.listSubscriptions();
+      expect(all).toHaveLength(2);
+    });
+
+    it("filters by channelId and stateCode", async () => {
+      await seedSubscription(db, { channelId: "CH1", stateCode: "US-CA" });
+      await seedSubscription(db, { channelId: "CH2", stateCode: "US-AZ" });
+      expect(await repo.listSubscriptions({ channelId: "CH1" })).toHaveLength(
+        1,
+      );
+      expect(await repo.listSubscriptions({ stateCode: "US-AZ" })).toHaveLength(
+        1,
+      );
+    });
+  });
+
+  describe("setSubscriptionActive", () => {
+    it("toggles active and returns the updated row, undefined when absent", async () => {
+      const sub = await seedSubscription(db, { active: true });
+      const key = {
+        channelId: sub.channelId,
+        countyCode: sub.countyCode,
+        stateCode: sub.stateCode,
+      };
+      const updated = await repo.setSubscriptionActive(key, false);
+      expect(updated?.active).toBe(false);
+      expect(updated?.channelId).toBe(sub.channelId);
+      const [row] = await repo.listSubscriptions({
+        channelId: sub.channelId,
+      });
+      expect(row?.active).toBe(false);
+      expect(
+        await repo.setSubscriptionActive({ ...key, channelId: "NOPE" }, true),
+      ).toBeUndefined();
     });
   });
 });

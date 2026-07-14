@@ -11,7 +11,7 @@
       "outputs": ["dist/**"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^build"]
     },
     "dev": {
       "cache": false,
@@ -21,7 +21,8 @@
       "cache": false
     },
     "test": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^build"]
     }
   },
   "ui": "tui"

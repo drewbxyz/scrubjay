@@ -40,3 +40,48 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+  docker-smoke:
+    name: Docker Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build scrubjay-discord image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/scrubjay-discord/Dockerfile
+          push: false
+          load: true
+          tags: scrubjay-discord:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Catches "works in dev, broken in the image" bugs (e.g. a workspace
+      # package symlink that dangles in the runner stage) that no other gate
+      # sees. Pass = workspace deps resolve and boot gets past module loading,
+      # dying only on the deliberately absent database.
+      - name: Smoke-test image
+        run: |
+          docker run --rm scrubjay-discord:smoke \
+            node -e "require('@scrubjay/api-contracts'); console.log('api-contracts resolves OK')"
+
+          output=$(timeout 60 docker run --rm \
+            -e DATABASE_URL=postgres://stub:stub@127.0.0.1:5432/stub \
+            -e DISCORD_TOKEN=stub \
+            -e EBIRD_TOKEN=stub \
+            scrubjay-discord:smoke 2>&1 || true)
+          echo "$output"
+          if echo "$output" | grep -q "Cannot find module"; then
+            echo "::error::image is missing modules at runtime"
+            exit 1
+          fi
+          if ! echo "$output" | grep -q "ECONNREFUSED"; then
+            echo "::error::boot did not reach the DB connection step"
+            exit 1
+          fi

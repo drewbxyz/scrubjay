@@ -4,6 +4,15 @@ import { channelEBirdSubscriptions } from "@/core/drizzle/drizzle.schema";
 import { DrizzleService } from "@/core/drizzle/drizzle.service";
 import { AlertQueue } from "../dispatch/alert-queue.service";
 
+/** A subscription row as returned by the update/list projections. */
+export type SubscriptionRecord = {
+  active: boolean;
+  channelId: string;
+  countyCode: string;
+  lastUpdated: Date;
+  stateCode: string;
+};
+
 @Injectable()
 export class SubscriptionsRepository {
   constructor(
@@ -62,5 +71,59 @@ export class SubscriptionsRepository {
         channelEBirdSubscriptions.stateCode,
         channelEBirdSubscriptions.countyCode,
       );
+  }
+
+  async listSubscriptions(
+    filter: { channelId?: string; stateCode?: string } = {},
+  ) {
+    const conditions = [
+      filter.channelId
+        ? eq(channelEBirdSubscriptions.channelId, filter.channelId)
+        : undefined,
+      filter.stateCode
+        ? eq(channelEBirdSubscriptions.stateCode, filter.stateCode)
+        : undefined,
+    ].filter((c) => c !== undefined);
+
+    return this.drizzle.db
+      .select({
+        active: channelEBirdSubscriptions.active,
+        channelId: channelEBirdSubscriptions.channelId,
+        countyCode: channelEBirdSubscriptions.countyCode,
+        lastUpdated: channelEBirdSubscriptions.lastUpdated,
+        stateCode: channelEBirdSubscriptions.stateCode,
+      })
+      .from(channelEBirdSubscriptions)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(
+        channelEBirdSubscriptions.channelId,
+        channelEBirdSubscriptions.stateCode,
+        channelEBirdSubscriptions.countyCode,
+      );
+  }
+
+  /** Returns the updated Subscription row, or undefined if none existed. */
+  async setSubscriptionActive(
+    key: { channelId: string; stateCode: string; countyCode: string },
+    active: boolean,
+  ): Promise<SubscriptionRecord | undefined> {
+    const [row] = await this.drizzle.db
+      .update(channelEBirdSubscriptions)
+      .set({ active })
+      .where(
+        and(
+          eq(channelEBirdSubscriptions.channelId, key.channelId),
+          eq(channelEBirdSubscriptions.stateCode, key.stateCode),
+          eq(channelEBirdSubscriptions.countyCode, key.countyCode),
+        ),
+      )
+      .returning({
+        active: channelEBirdSubscriptions.active,
+        channelId: channelEBirdSubscriptions.channelId,
+        countyCode: channelEBirdSubscriptions.countyCode,
+        lastUpdated: channelEBirdSubscriptions.lastUpdated,
+        stateCode: channelEBirdSubscriptions.stateCode,
+      });
+    return row;
   }
 }

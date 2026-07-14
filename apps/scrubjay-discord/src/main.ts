@@ -14,6 +14,9 @@ import { poolNameFields } from "@/core/drizzle/pool-name";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
+  // No CORS config is deliberate: the operator API is called server-to-server
+  // only — the portal's server functions reach it over the internal Docker
+  // network. Browsers never hit it directly, so no CORS headers are needed.
   // Creating the app validates the environment and loads .env.
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
@@ -41,4 +44,7 @@ async function bootstrap() {
 
   await app.listen(config.get("PORT", { infer: true }));
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

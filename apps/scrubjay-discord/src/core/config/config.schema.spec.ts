@@ -82,4 +82,15 @@ describe("validateConfig", () => {
       validateConfig({ ...validEnv, FILTER_REACTION_THRESHOLD: "0" }),
     ).toThrow("FILTER_REACTION_THRESHOLD");
   });
+
+  it("accepts a missing SCRUBJAY_API_TOKEN", () => {
+    const result = validateConfig(validEnv);
+    expect(result.SCRUBJAY_API_TOKEN).toBeUndefined();
+  });
+
+  it("rejects a short SCRUBJAY_API_TOKEN", () => {
+    expect(() =>
+      validateConfig({ ...validEnv, SCRUBJAY_API_TOKEN: "short" }),
+    ).toThrow();
+  });
 });
