@@ -12,6 +12,7 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@opentelemetry/sdk-metrics": "^2.9.0",
     "@scrubjay/api-contracts": "workspace:*",
     "@scrubjay/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.3.2",
