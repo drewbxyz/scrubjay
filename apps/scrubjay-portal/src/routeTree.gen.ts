@@ -13,6 +13,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForbiddenRouteImport } from './routes/forbidden'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedObservationsRouteImport } from './routes/_authed/observations'
+import { Route as AuthedDeliveriesRouteImport } from './routes/_authed/deliveries'
 import { Route as AuthedChannelsIndexRouteImport } from './routes/_authed/channels/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthedChannelsChannelIdRouteImport } from './routes/_authed/channels/$channelId'
@@ -36,6 +38,16 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedObservationsRoute = AuthedObservationsRouteImport.update({
+  id: '/observations',
+  path: '/observations',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDeliveriesRoute = AuthedDeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedChannelsIndexRoute = AuthedChannelsIndexRouteImport.update({
   id: '/channels/',
   path: '/channels/',
@@ -56,6 +68,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
+  '/deliveries': typeof AuthedDeliveriesRoute
+  '/observations': typeof AuthedObservationsRoute
   '/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/channels/': typeof AuthedChannelsIndexRoute
@@ -63,6 +77,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
+  '/deliveries': typeof AuthedDeliveriesRoute
+  '/observations': typeof AuthedObservationsRoute
   '/': typeof AuthedIndexRoute
   '/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -73,6 +89,8 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
+  '/_authed/deliveries': typeof AuthedDeliveriesRoute
+  '/_authed/observations': typeof AuthedObservationsRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -84,6 +102,8 @@ export interface FileRouteTypes {
     | '/'
     | '/forbidden'
     | '/login'
+    | '/deliveries'
+    | '/observations'
     | '/channels/$channelId'
     | '/api/auth/$'
     | '/channels/'
@@ -91,6 +111,8 @@ export interface FileRouteTypes {
   to:
     | '/forbidden'
     | '/login'
+    | '/deliveries'
+    | '/observations'
     | '/'
     | '/channels/$channelId'
     | '/api/auth/$'
@@ -100,6 +122,8 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/forbidden'
     | '/login'
+    | '/_authed/deliveries'
+    | '/_authed/observations'
     | '/_authed/'
     | '/_authed/channels/$channelId'
     | '/api/auth/$'
@@ -143,6 +167,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/observations': {
+      id: '/_authed/observations'
+      path: '/observations'
+      fullPath: '/observations'
+      preLoaderRoute: typeof AuthedObservationsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/deliveries': {
+      id: '/_authed/deliveries'
+      path: '/deliveries'
+      fullPath: '/deliveries'
+      preLoaderRoute: typeof AuthedDeliveriesRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/channels/': {
       id: '/_authed/channels/'
       path: '/channels'
@@ -168,12 +206,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedRouteChildren {
+  AuthedDeliveriesRoute: typeof AuthedDeliveriesRoute
+  AuthedObservationsRoute: typeof AuthedObservationsRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedChannelsChannelIdRoute: typeof AuthedChannelsChannelIdRoute
   AuthedChannelsIndexRoute: typeof AuthedChannelsIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedDeliveriesRoute: AuthedDeliveriesRoute,
+  AuthedObservationsRoute: AuthedObservationsRoute,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedChannelsChannelIdRoute: AuthedChannelsChannelIdRoute,
   AuthedChannelsIndexRoute: AuthedChannelsIndexRoute,

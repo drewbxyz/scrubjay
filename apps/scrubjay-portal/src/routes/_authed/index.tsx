@@ -106,11 +106,9 @@ function Dashboard() {
               </TableBody>
             </Table>
           )}
-          {/* "/deliveries" is a placeholder route added in Task 11; cast past
-              the router's literal-route typing until it exists. */}
           <Link
             className="mt-2 inline-block text-sm text-indigo-400"
-            to={"/deliveries" as never}
+            to="/deliveries"
           >
             All deliveries →
           </Link>

@@ -19,14 +19,11 @@ export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
 });
 
-// "/channels", "/observations", "/deliveries" are placeholders for routes
-// added in Tasks 9-11; cast past the router's literal-route typing until
-// those routes exist.
 const NAV = [
   { label: "Dashboard", to: "/" },
-  { label: "Channels", to: "/channels" as never },
-  { label: "Observations", to: "/observations" as never },
-  { label: "Deliveries", to: "/deliveries" as never },
+  { label: "Channels", to: "/channels" },
+  { label: "Observations", to: "/observations" },
+  { label: "Deliveries", to: "/deliveries" },
 ] as const;
 
 function AuthedLayout() {
