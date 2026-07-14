@@ -1,0 +1,54 @@
+{
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api-logs": "^0.220.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.220.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.220.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
+    "@opentelemetry/instrumentation-http": "^0.220.0",
+    "@opentelemetry/instrumentation-undici": "^0.30.0",
+    "@opentelemetry/sdk-node": "^0.220.0",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@scrubjay/api-contracts": "workspace:*",
+    "@scrubjay/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.3.2",
+    "@tanstack/react-router": "^1.168.0",
+    "@tanstack/react-start": "^1.168.28",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "better-auth": "^1.6.23",
+    "drizzle-kit": "^0.31.10",
+    "nitro": "^3.0.260610-beta",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.4",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  },
+  "files": [
+    ".output",
+    "drizzle",
+    "otel",
+    "scripts"
+  ],
+  "name": "scrubjay-portal",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "check-types": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "dev": "vite dev --port 3100",
+    "start": "node .output/server/index.mjs",
+    "test": "vitest run"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}
