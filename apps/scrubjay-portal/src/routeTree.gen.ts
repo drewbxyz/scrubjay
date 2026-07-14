@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForbiddenRouteImport } from './routes/forbidden'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthedObservationsRouteImport } from './routes/_authed/observations'
 import { Route as AuthedDeliveriesRouteImport } from './routes/_authed/deliveries'
 import { Route as AuthedChannelsIndexRouteImport } from './routes/_authed/channels/index'
@@ -37,6 +38,11 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedObservationsRoute = AuthedObservationsRouteImport.update({
   id: '/observations',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/deliveries': typeof AuthedDeliveriesRoute
   '/observations': typeof AuthedObservationsRoute
+  '/api/health': typeof ApiHealthRoute
   '/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/channels/': typeof AuthedChannelsIndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/deliveries': typeof AuthedDeliveriesRoute
   '/observations': typeof AuthedObservationsRoute
+  '/api/health': typeof ApiHealthRoute
   '/': typeof AuthedIndexRoute
   '/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authed/deliveries': typeof AuthedDeliveriesRoute
   '/_authed/observations': typeof AuthedObservationsRoute
+  '/api/health': typeof ApiHealthRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/channels/$channelId': typeof AuthedChannelsChannelIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/deliveries'
     | '/observations'
+    | '/api/health'
     | '/channels/$channelId'
     | '/api/auth/$'
     | '/channels/'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/deliveries'
     | '/observations'
+    | '/api/health'
     | '/'
     | '/channels/$channelId'
     | '/api/auth/$'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authed/deliveries'
     | '/_authed/observations'
+    | '/api/health'
     | '/_authed/'
     | '/_authed/channels/$channelId'
     | '/api/auth/$'
@@ -134,6 +146,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   ForbiddenRoute: typeof ForbiddenRoute
   LoginRoute: typeof LoginRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -166,6 +179,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authed/observations': {
       id: '/_authed/observations'
@@ -228,6 +248,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   ForbiddenRoute: ForbiddenRoute,
   LoginRoute: LoginRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
