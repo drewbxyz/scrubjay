@@ -12,6 +12,7 @@ ScrubJay is a NestJS-powered Discord bot built for the California Birding commun
 ## Repository layout
 
 - `apps/scrubjay-discord` - Discord bot service (NestJS, Necord, Drizzle, discord.js).
+- `apps/scrubjay-portal` - Discord-authenticated operator management portal (TanStack Start, Better Auth, Drizzle); optional add-on.
 - `apps/test-api` - Mock eBird API for local development and tests.
 - `packages/typescript-config` - Shared TypeScript config.
 - `docker-compose.yaml` - Postgres 17 for local use.
@@ -47,6 +48,10 @@ The bot runs database migrations on startup using the Drizzle files in `apps/scr
 4. Optional: run the mock API at `localhost:8080` with `pnpm --filter test-api dev`
 
 Jobs ingest eBird data every 15 minutes and dispatch grouped alerts every minute; a daily retention job (04:17) prunes aged observations and delivery records. Bootstrap logic runs on startup to backfill observations without sending Discord messages. A `/health` HTTP endpoint (on `PORT`) reports DB connectivity plus ingest/dispatch freshness. Optional OpenTelemetry export (traces, metrics, structured logs over OTLP) is documented in [OBSERVABILITY.md](OBSERVABILITY.md).
+
+## Management portal
+
+`apps/scrubjay-portal` is an optional add-on: a Discord-authenticated web UI for operators to manage subscriptions and filters and inspect bot health, backed by the bot's `/api/v1` REST API. It's the only service in this repo meant to be exposed publicly (the bot itself has no public HTTP surface beyond `/health`); it authenticates operators via Discord OAuth against a Better Auth session and an allowlist of Discord user IDs. See `apps/scrubjay-portal/.env.example` for its configuration.
 
 ## Notes
 
