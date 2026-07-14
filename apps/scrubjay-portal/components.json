@@ -13,7 +13,7 @@
   "registries": {},
   "rsc": false,
   "rtl": false,
-  "style": "radix-nova",
+  "style": "base-nova",
   "tailwind": {
     "baseColor": "neutral",
     "config": "",

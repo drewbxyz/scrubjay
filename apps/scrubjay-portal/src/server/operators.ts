@@ -1,6 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { eq } from "drizzle-orm";
-import { auth } from "./auth";
+import { getAuth } from "./auth";
 import { portal_account } from "./auth-schema";
 import { getDb } from "./db";
 import { env } from "./env";
@@ -54,7 +54,9 @@ async function discordIdForUser(userId: string): Promise<string | undefined> {
 
 /** Session + allowlist gate; every data server function calls this first. */
 export async function requireOperator(): Promise<OperatorSession> {
-  const session = await auth.api.getSession({ headers: getRequest().headers });
+  const session = await getAuth().api.getSession({
+    headers: getRequest().headers,
+  });
   if (!session) throw new UnauthenticatedError();
   const discordId = await discordIdForUser(session.user.id);
   if (

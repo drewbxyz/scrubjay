@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { eq } from "drizzle-orm";
-import { auth } from "@/server/auth";
+import { getAuth } from "@/server/auth";
 import { portal_account } from "@/server/auth-schema";
 import { getDb } from "@/server/db";
 import { env } from "@/server/env";
@@ -14,7 +14,7 @@ export type SessionUser =
 
 export const getSessionUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<SessionUser> => {
-    const session = await auth.api.getSession({
+    const session = await getAuth().api.getSession({
       headers: getRequest().headers,
     });
     if (!session) return { status: "anonymous" };

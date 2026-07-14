@@ -61,7 +61,10 @@ export function AddSubscriptionForm({ onSubmit }: AddSubscriptionFormProps) {
       </div>
       <div className="flex flex-col gap-1">
         <Label>County</Label>
-        <Select onValueChange={setCounty} value={county}>
+        <Select
+          onValueChange={(value) => setCounty(value ?? "*")}
+          value={county}
+        >
           <SelectTrigger className="w-56">
             <SelectValue />
           </SelectTrigger>

@@ -28,10 +28,8 @@ export function ConfirmButton({
 }: ConfirmButtonProps) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="sm" variant={variant}>
-          {label}
-        </Button>
+      <AlertDialogTrigger render={<Button size="sm" variant={variant} />}>
+        {label}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
