@@ -112,3 +112,32 @@ OTLP→Prometheus mangling (dots → `_`; counters gain a `_total` suffix;
 gauges and up-down counters keep their base name). A starter "Critical
 Health" Grafana dashboard is maintained outside this repo (in Grafana); it
 is intentionally not version-controlled here.
+
+## scrubjay-portal
+
+The management portal (`apps/scrubjay-portal`, optional add-on) follows the
+same vendor-neutral pattern as the bot. The **on-switch** and the
+`OTEL_*` environment variable table above apply verbatim — an unset
+`OTEL_EXPORTER_OTLP_ENDPOINT` means zero overhead, zero new runtime
+behavior. `OTEL_SERVICE_NAME` defaults to `scrubjay-portal` (the
+`service.name` resource attribute) rather than `scrubjay-discord`.
+
+One difference is bootstrap: the portal is a Vite/TanStack Start build, and
+a bundled copy of the OTel SDK cannot patch `node:http`/`undici` before the
+app imports them. The SDK is therefore loaded outside the bundle via
+`node --import otel/instrumentation.mjs .output/server/index.mjs`, patching
+Node's HTTP internals before the server bundle ever runs.
+
+**Traces** — HTTP-server spans for every request plus outbound `undici`
+client spans (the portal's calls to the bot's `/api/v1`). `/api/health`
+requests are not traced.
+
+**Metrics** — pushed every `OTEL_METRIC_EXPORT_INTERVAL`:
+
+| Metric | Type | What it tells you |
+|---|---|---|
+| `scrubjay_portal_bot_api_requests` (`_total` in Prometheus) | counter | calls to the bot API, by `endpoint` + `method` + `status` |
+| `scrubjay_portal_bot_api_duration` (ms) | histogram | bot API call latency, by `endpoint` + `method` + `status` |
+
+**Logs** — emitted via the OTel Logs API and correlated with the active
+trace (`trace_id`/`span_id`), same as the bot's pino records.

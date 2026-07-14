@@ -11,9 +11,21 @@
     },
     "enabled": true
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!apps/scrubjay-discord/src/drizzle/meta"]
+    "includes": [
+      "**",
+      "!apps/scrubjay-discord/src/drizzle/meta",
+      "!apps/scrubjay-portal/src/routeTree.gen.ts",
+      "!apps/scrubjay-portal/src/server/auth-schema.ts",
+      "!apps/scrubjay-portal/drizzle",
+      "!apps/scrubjay-portal/src/components/ui"
+    ]
   },
   "formatter": {
     "enabled": true,

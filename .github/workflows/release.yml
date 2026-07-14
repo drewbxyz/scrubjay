@@ -85,3 +85,13 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+
+      - name: Build and push scrubjay-portal image
+        if: matrix.package.name == 'scrubjay-portal'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/scrubjay-portal/Dockerfile
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
