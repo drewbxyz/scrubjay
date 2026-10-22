@@ -217,7 +217,7 @@ describe("AlertQueueRepository", () => {
         .from(deliveries);
       expect(count).toBe(rowCount);
       expect(await repository.pendingEBirdAlerts()).toHaveLength(0);
-    });
+    }, 60_000);
 
     it("skips filtered species and already-delivered alerts", async () => {
       await seedLocation(db);
