@@ -15,6 +15,15 @@ minimumReleaseAgeExclude:
   - picomatch@2.3.2
   - undici@6.27.0
 overrides:
+  brace-expansion@>=1.0.0 <1.1.21: 1.1.21
+  browserslist@>=4.0.0 <4.28.7: 4.28.7
+  baseline-browser-mapping@>=2.0.0 <2.11.0: 2.11.0
+  js-yaml@>=4.0.0 <4.3.2: 4.3.2
+  nanoid@>=3.0.0 <3.3.18: 3.3.18
+  postcss@>=8.0.0 <8.5.23: 8.5.23
+  source-map-js@>=1.0.0 <1.2.2: 1.2.2
+  vite@>=8.0.0 <8.1.6: 8.1.6
+  "@humanfs/node@>=0.16.0 <0.16.8": 0.16.8
   esbuild@<=0.24.2: ^0.25.0
   flatted@<3.4.2: ^3.4.2
   picomatch@<2.3.2: ^2.3.2

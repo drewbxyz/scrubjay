@@ -18,7 +18,7 @@ ScrubJay is a NestJS-powered Discord bot built for the California Birding commun
 
 ## Prerequisites
 
-- Node.js 24 (see `.nvmrc`) and pnpm 10.
+- Node.js 26.12.1 (see `.nvmrc`) and pnpm 11.
 - Postgres 17 running locally (`docker compose up -d postgres`).
 - Discord application with a bot token.
 - eBird API token. Point the bot at `apps/test-api` if you want to avoid the live API.

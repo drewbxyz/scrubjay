@@ -1,14 +1,14 @@
 # Base stage: Set up Node.js and pnpm
-FROM node:24-alpine AS base
+FROM node:26.12.1-alpine AS base
 ENV PNPM_HOME="/pnpm"
-# pnpm 11 installs global bins to $PNPM_HOME/bin (older pnpm used $PNPM_HOME)
+# pnpm 11 uses $PNPM_HOME/bin for globally installed package executables.
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 # turbo is pinned: release builds run with no layer cache, so an unpinned
 # "latest" would silently change prune/build behavior with no lockfile to
 # stop it. Keep in sync with the root devDependency.
 RUN apk add --no-cache libc6-compat && \
-    corepack enable && \
-    pnpm install turbo@2.10.3 --global
+    npm install --global pnpm@11.10.0 && \
+    pnpm install turbo@2.11.10 --global
 
 FROM base AS builder
 WORKDIR /usr/src/app
@@ -35,7 +35,7 @@ RUN turbo run build --filter=scrubjay-discord
 # stay listed in the app's package.json "files".
 RUN pnpm --filter=scrubjay-discord deploy --prod --legacy /prod/scrubjay-discord
 
-FROM node:24-alpine AS runner
+FROM node:26.12.1-alpine AS runner
 
 WORKDIR /usr/src/app
 
@@ -48,7 +48,7 @@ USER nodejs
 
 # Single quotes are load-bearing: backticks or ${...} in double quotes would
 # be expanded by /bin/sh before node runs. start-period covers migrations +
-# Discord login. Alpine has no curl; node 24's global fetch does the probe.
+# Discord login. Alpine has no curl; node 26's global fetch does the probe.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD node -e 'fetch("http://127.0.0.1:" + (process.env.PORT ?? 3000) + "/health").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'
 CMD ["node", "dist/main.js"]
