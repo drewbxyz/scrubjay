@@ -1,13 +1,13 @@
 # Base stage: Set up Node.js and pnpm
 FROM node:26.12.1-alpine AS base
 ENV PNPM_HOME="/pnpm"
-# pnpm 11 uses $PNPM_HOME/bin for globally installed package executables.
+# pnpm uses $PNPM_HOME/bin for globally installed package executables.
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 # turbo is pinned: release builds run with no layer cache, so an unpinned
 # "latest" would silently change prune/build behavior with no lockfile to
 # stop it. Keep in sync with the root devDependency.
 RUN apk add --no-cache libc6-compat && \
-    npm install --global pnpm@11.10.0 && \
+    npm install --global pnpm@12.14.0 && \
     pnpm install turbo@2.11.10 --global
 
 FROM base AS builder
